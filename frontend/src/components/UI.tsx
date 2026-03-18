@@ -5,7 +5,7 @@ export function TierBadge({ tier, small }: { tier: string; small?: boolean }) {
   const cls = tier === 'ignite' ? 'badge-ignite' : tier === 'apex' ? 'badge-apex' : 'badge-dynasty';
   return (
     <span className={`badge-tier ${cls} ${small ? 'text-[9px] px-1.5 py-0' : ''}`}>
-      {t.icon} {t.n}
+      {t.icon} {t.name}
     </span>
   );
 }
