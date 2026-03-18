@@ -1,0 +1,10 @@
+node_modules
+.next
+frontend/node_modules
+frontend/.next
+.git
+.DS_Store
+db/*.db
+db/*.db-shm
+db/*.db-wal
+*.md
