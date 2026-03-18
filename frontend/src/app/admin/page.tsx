@@ -1,0 +1,346 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { useToast } from '@/lib/toast';
+import { TIERS, TierBadge } from '@/lib/tiers';
+
+const TABS = [
+  { id: 'members', label: 'Members', icon: '👥' },
+  { id: 'subs', label: 'Subs', icon: '💳' },
+  { id: 'prizes', label: 'Prizes', icon: '🎁' },
+  { id: 'draws', label: 'Draws', icon: '🎰' },
+  { id: 'audit', label: 'Audit', icon: '📋' },
+];
+
+export default function AdminPage() {
+  const { member, loading, isAdmin } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [tab, setTab] = useState('members');
+  const [analytics, setAnalytics] = useState<any>(null);
+
+  useEffect(() => {
+    if (!loading && (!member || !isAdmin)) router.push('/login');
+  }, [loading, member, isAdmin, router]);
+
+  useEffect(() => {
+    if (isAdmin) api('/admin/analytics').then(setAnalytics).catch(() => {});
+  }, [isAdmin]);
+
+  if (loading || !member || !isAdmin) return (
+    <div className="min-h-dvh flex items-center justify-center"><div className="w-8 h-8 border-2 border-glass-border border-t-ci-red rounded-full animate-spin" /></div>
+  );
+
+  const a = analytics;
+
+  return (
+    <section className="min-h-dvh pt-[84px] px-4 pb-10 animate-fade-up">
+      <div className="max-w-[1200px] mx-auto">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-2">
+          <div>
+            <h2 className="font-heading text-[clamp(20px,3vw,26px)] tracking-[3px]">ADMIN DASHBOARD</h2>
+            <span className="bg-[rgba(230,57,70,.1)] text-ci-red-light text-[9px] px-2 py-0.5 border border-[rgba(230,57,70,.15)] rounded font-bold">ADMIN</span>
+          </div>
+        </div>
+
+        {a && (
+          <>
+            <p className="text-xs text-[#58586a] mb-4">
+              {a.members.total} members · {a.draws.total} draws · R{a.revenue.mrr.toLocaleString()}/mo MRR
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+              {[
+                { l: 'Members', v: a.members.total },
+                { l: 'MRR', v: `R${a.revenue.mrr.toLocaleString()}`, c: 'text-ci-gold-light' },
+                { l: 'Ignite', v: a.members.byTier.ignite, c: 'text-ci-red-light' },
+                { l: 'Apex', v: a.members.byTier.apex, c: 'text-ci-gold-light' },
+                { l: 'Dynasty', v: a.members.byTier.dynasty, c: 'text-ci-purple' },
+                { l: 'Draws', v: a.draws.total, c: 'text-ci-green' },
+              ].map(s => (
+                <div key={s.l} className="glass-card p-4 relative overflow-hidden">
+                  <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-[rgba(230,57,70,.04)] blur-[25px]" />
+                  <div className="text-[10px] font-semibold text-[#58586a] tracking-[2px] uppercase mb-1">{s.l}</div>
+                  <div className={`font-heading text-3xl tracking-wide ${s.c || ''}`}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Tabs */}
+        <div className="flex gap-[3px] bg-[rgba(255,255,255,.02)] rounded-xl p-1 border border-glass-border overflow-x-auto mb-4">
+          {TABS.map(tb => (
+            <button key={tb.id} onClick={() => setTab(tb.id)}
+              className={`px-4 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${tab === tb.id ? 'bg-[rgba(230,57,70,.1)] text-white font-semibold shadow-[0_0_15px_rgba(230,57,70,.08)]' : 'text-[#58586a] hover:text-[#9898a8]'}`}>
+              {tb.icon} {tb.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'members' && <MembersTab toast={toast} />}
+        {tab === 'subs' && <SubsTab />}
+        {tab === 'prizes' && <PrizesConfigTab toast={toast} />}
+        {tab === 'draws' && <DrawsTab toast={toast} />}
+        {tab === 'audit' && <AuditTab />}
+      </div>
+    </section>
+  );
+}
+
+function MembersTab({ toast }: { toast: any }) {
+  const [members, setMembers] = useState<any[]>([]);
+  const reload = () => api('/members').then(r => setMembers(r.members || [])).catch(() => {});
+  useEffect(() => { reload(); }, []);
+
+  const activate = async (id: string) => {
+    try { const r = await api(`/admin/members/${id}/activate`, { method: 'POST' }); toast(r.message, 'success'); reload(); } catch (e: any) { toast(e.message, 'error'); }
+  };
+  const suspend = async (id: string) => {
+    if (!confirm('Suspend this member?')) return;
+    try { const r = await api(`/admin/members/${id}/suspend`, { method: 'POST' }); toast(r.message, 'success'); reload(); } catch (e: any) { toast(e.message, 'error'); }
+  };
+  const del = async (id: string) => {
+    if (!confirm('Permanently remove this member?')) return;
+    try { await api(`/members/${id}`, { method: 'DELETE' }); toast('Removed', 'success'); reload(); } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const statusBadge = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'active') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(34,204,110,.08)] text-ci-green font-bold">ACTIVE</span>;
+    if (s === 'pending') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(240,192,64,.1)] text-ci-gold-light font-bold">PENDING</span>;
+    if (s === 'suspended') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(230,57,70,.1)] text-ci-red-light font-bold">SUSPENDED</span>;
+    return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-glass text-[#58586a] font-bold">{(status || 'UNKNOWN').toUpperCase()}</span>;
+  };
+
+  return (
+    <div className="glass-card overflow-hidden">
+      <div className="overflow-x-auto p-1">
+        <table className="w-full text-xs">
+          <thead><tr className="text-[9px] text-[#58586a] tracking-[2px] uppercase">
+            <th className="p-3 text-left border-b border-glass-border">Name</th>
+            <th className="p-3 text-left border-b border-glass-border">Email</th>
+            <th className="p-3 text-left border-b border-glass-border">Tier</th>
+            <th className="p-3 text-left border-b border-glass-border">Role</th>
+            <th className="p-3 text-left border-b border-glass-border">Status</th>
+            <th className="p-3 text-left border-b border-glass-border">Actions</th>
+          </tr></thead>
+          <tbody>
+            {members.map(m => (
+              <tr key={m.id} className="hover:bg-[rgba(230,57,70,.02)]">
+                <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{m.first_name} {m.last_name}</td>
+                <td className="p-3 text-[#58586a] border-b border-[rgba(255,255,255,.03)]">{m.email}</td>
+                <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={m.tier} small /></td>
+                <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{m.role === 'admin' ? <span className="bg-[rgba(230,57,70,.1)] text-ci-red-light text-[9px] px-1.5 py-0.5 rounded font-bold">ADMIN</span> : 'member'}</td>
+                <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{statusBadge(m.status)}</td>
+                <td className="p-3 border-b border-[rgba(255,255,255,.03)]">
+                  <div className="flex items-center gap-1.5">
+                    {m.status !== 'active' && m.role !== 'admin' && (
+                      <button onClick={() => activate(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(34,204,110,.1)] text-ci-green font-bold hover:bg-[rgba(34,204,110,.15)] transition-all" title="Activate member">✓ Activate</button>
+                    )}
+                    {m.status === 'active' && m.role !== 'admin' && (
+                      <button onClick={() => suspend(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(240,192,64,.08)] text-ci-gold-light font-bold hover:bg-[rgba(240,192,64,.12)] transition-all" title="Suspend member">⏸ Suspend</button>
+                    )}
+                    {m.role !== 'admin' && (
+                      <button onClick={() => del(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(230,57,70,.08)] text-ci-red font-bold hover:bg-[rgba(230,57,70,.12)] transition-all" title="Remove member">✕</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {members.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No members</div>}
+      </div>
+    </div>
+  );
+}
+
+function SubsTab() {
+  const [subs, setSubs] = useState<any[]>([]);
+  useEffect(() => { api('/subscriptions').then(r => setSubs(r.subscriptions || [])).catch(() => {}); }, []);
+  return (
+    <div className="glass-card overflow-hidden">
+      <div className="overflow-x-auto p-1">
+        <table className="w-full text-xs">
+          <thead><tr className="text-[9px] text-[#58586a] tracking-[2px] uppercase">
+            <th className="p-3 text-left border-b border-glass-border">Member</th>
+            <th className="p-3 text-left border-b border-glass-border">Tier</th>
+            <th className="p-3 text-left border-b border-glass-border">Amount</th>
+            <th className="p-3 text-left border-b border-glass-border">Status</th>
+          </tr></thead>
+          <tbody>{subs.map(s => (
+            <tr key={s.id} className="hover:bg-[rgba(230,57,70,.02)]">
+              <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{s.first_name} {s.last_name}</td>
+              <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={s.tier} small /></td>
+              <td className="p-3 text-ci-gold-light font-bold border-b border-[rgba(255,255,255,.03)]">R{s.amount}/mo</td>
+              <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(34,204,110,.08)] text-ci-green">{(s.status || '').toUpperCase()}</span></td>
+            </tr>
+          ))}</tbody>
+        </table>
+        {subs.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No subscriptions</div>}
+      </div>
+    </div>
+  );
+}
+
+function PrizesConfigTab({ toast }: { toast: any }) {
+  const [prizes, setPrizes] = useState<any[]>([]);
+  useEffect(() => { api('/prizes').then(r => setPrizes(r.prizes || [])).catch(() => {}); }, []);
+
+  const save = async (tier: string) => {
+    const g = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value?.trim() || '';
+    const n = g(`pz-${tier}-n`);
+    if (!n) { toast('Name required', 'error'); return; }
+    try {
+      await api('/admin/prizes', { method: 'POST', body: {
+        tier, prizeName: n, prizeDesc: g(`pz-${tier}-d`), prizeValue: parseFloat(g(`pz-${tier}-v`)) || 0,
+        prizeImageUrl: g(`pz-${tier}-img`) || null,
+        upcomingName: g(`pz-${tier}-un`) || null, upcomingDesc: g(`pz-${tier}-ud`) || null,
+        upcomingValue: parseFloat(g(`pz-${tier}-uv`)) || 0, upcomingImageUrl: g(`pz-${tier}-uimg`) || null,
+        drawDateHint: g(`pz-${tier}-dd`) || null,
+      }});
+      toast(`${TIERS[tier].name} prizes saved!`, 'success');
+    } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const inp = "w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red";
+
+  return (
+    <div className="glass-card p-5">
+      <h3 className="font-bold text-[15px] mb-2">🎁 Prize Configuration</h3>
+      <p className="text-xs text-[#58586a] mb-5">Set current and upcoming prizes per tier. Leave image blank for auto.</p>
+
+      {['ignite', 'apex', 'dynasty'].map(tier => {
+        const t = TIERS[tier];
+        const p = prizes.find(x => x.tier === tier) || {} as any;
+        return (
+          <div key={tier} className="glass-sm p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5"><TierBadge tier={tier} /> <span className="text-xs text-[#58586a]">{t.freq}</span></div>
+              <span className="text-[9px] font-bold tracking-[2px] text-ci-red-light uppercase">CURRENT PRIZE</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Prize Name *</label><input id={`pz-${tier}-n`} defaultValue={p.prize_name || t.prize} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Description</label><input id={`pz-${tier}-d`} defaultValue={p.prize_desc || ''} className={inp} /></div>
+            </div>
+            <div className="grid grid-cols-[auto_1fr] gap-2.5 mb-3">
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-v`} defaultValue={p.prize_value || 0} className={`${inp} w-[120px]`} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-img`} defaultValue={p.prize_image_url || ''} placeholder="https://..." className={inp} /></div>
+            </div>
+            <div className="h-px bg-glass-border my-3" />
+            <div className="mb-2"><span className="text-[9px] font-bold tracking-[2px] text-ci-gold-light uppercase">UPCOMING PRIZE (next draw)</span></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Upcoming Name</label><input id={`pz-${tier}-un`} defaultValue={p.upcoming_name || ''} placeholder="e.g. BMW M4" className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Upcoming Desc</label><input id={`pz-${tier}-ud`} defaultValue={p.upcoming_desc || ''} className={inp} /></div>
+            </div>
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2.5 mb-3">
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-uv`} defaultValue={p.upcoming_value || 0} className={`${inp} w-[120px]`} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-uimg`} defaultValue={p.upcoming_image_url || ''} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Draw Date</label><input id={`pz-${tier}-dd`} defaultValue={p.draw_date_hint || ''} placeholder="April 2026" className={`${inp} w-[130px]`} /></div>
+            </div>
+            <button onClick={() => save(tier)} className="btn btn-gold px-5 py-2 text-[11px]">Save {t.name} Prizes</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DrawsTab({ toast }: { toast: any }) {
+  const [draws, setDraws] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [result, setResult] = useState<string>('');
+  const [spinning, setSpinning] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api('/draws?limit=20'), api('/members')]).then(([dR, mR]) => {
+      setDraws(dR.draws || []);
+      setMembers(mR.members || []);
+    }).catch(() => {});
+  }, []);
+
+  const tierCount = (t: string) => members.filter(m => m.tier === t).length;
+
+  const exec = async (tier: string) => {
+    setSpinning(true); setResult('');
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const r = await api('/draws/execute', { method: 'POST', body: { tier } });
+      setResult(`🎉 ${r.draw.winner_name} won the ${r.draw.prize_name}!`);
+      toast(`${r.draw.winner_name} won!`, 'success');
+      const dR = await api('/draws?limit=20');
+      setDraws(dR.draws || []);
+    } catch (e: any) { setResult(e.message); toast(e.message, 'error'); }
+    setSpinning(false);
+  };
+
+  return (
+    <div className="glass-card p-5">
+      <h3 className="font-bold text-[15px] mb-4">🎰 Execute Draw</h3>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {Object.entries(TIERS).map(([id, t]) => (
+          <button key={id} onClick={() => exec(id)} disabled={tierCount(id) === 0 || spinning}
+            className="btn flex-1 min-w-[100px] px-4 py-2.5 text-[11px] bg-bg-3 border border-glass-border text-white">
+            {t.icon} {t.name} ({tierCount(id)})
+          </button>
+        ))}
+      </div>
+
+      <div className="glass-sm p-6 text-center min-h-[80px] flex items-center justify-center mb-4">
+        {spinning ? (
+          <div className="font-heading text-[22px] tracking-[3px] bg-gradient-to-r from-white via-ci-gold-light to-white bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer">
+            DRAWING...
+          </div>
+        ) : result ? (
+          <div className="animate-fade-up"><div className="font-heading text-2xl text-ci-gold-light tracking-wider">{result}</div></div>
+        ) : (
+          <span className="text-[#58586a] text-[13px]">Select tier above</span>
+        )}
+      </div>
+
+      <div className="text-[11px] font-bold tracking-[3px] text-[#58586a] uppercase mb-3">History ({draws.length})</div>
+      {draws.map(d => (
+        <div key={d.id} className="glass-sm flex flex-wrap items-center justify-between p-3 mb-1.5 gap-1.5">
+          <div className="flex items-center gap-2">
+            <span>🏆</span>
+            <div>
+              <div className="font-bold text-xs">{d.winner_name}</div>
+              <div className="text-[10px] text-[#58586a]">{d.prize_name} · {new Date(d.draw_date).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <TierBadge tier={d.tier} small />
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(34,204,110,.08)] text-ci-green">{d.audit_ref}</span>
+          </div>
+        </div>
+      ))}
+      {draws.length === 0 && <div className="text-center py-4 text-[#58586a] text-xs">No draws</div>}
+    </div>
+  );
+}
+
+function AuditTab() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    api('/admin/audit').then(r => { setLogs(r.logs || []); setTotal(r.total); }).catch(() => {});
+  }, []);
+
+  return (
+    <div className="glass-card p-4">
+      <div className="text-[11px] font-bold tracking-[3px] text-[#58586a] uppercase mb-3">Audit Trail ({total})</div>
+      {logs.slice(0, 50).map((l, i) => (
+        <div key={i} className="flex flex-wrap items-center justify-between py-1.5 border-b border-glass-border gap-1 text-[11px]">
+          <div>
+            <span className="font-bold text-ci-gold-light font-mono text-[10px]">{l.action}</span>
+            <span className="text-[#58586a] ml-1.5 font-mono text-[9px]">{(l.details || '').slice(0, 80)}</span>
+          </div>
+          <span className="text-[9px] text-[#58586a]">{new Date(l.created_at).toLocaleString()}</span>
+        </div>
+      ))}
+      {logs.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No logs</div>}
+    </div>
+  );
+}
