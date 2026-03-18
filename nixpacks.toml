@@ -1,0 +1,9 @@
+[phases.setup]
+nixPkgs = ['python3', 'gcc', 'gnumake', 'pkg-config', 'nodejs_20']
+nixLibs = ['glibc']
+
+[phases.install]
+cmds = ['npm ci']
+
+[start]
+cmd = 'node src/server.js'
