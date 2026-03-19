@@ -1,29 +1,80 @@
 // ═══════════════════════════════════════════════════════════
 // CarsIgnite — PayFast Integration
-// Handles subscription creation, ITN callbacks, tokenization
+// Based on PayFast's required field ordering spec
 // Docs: https://developers.payfast.co.za
 // ═══════════════════════════════════════════════════════════
 
 const crypto = require('crypto');
 const { Subscriptions, Payments, Members, Audit, TIERS } = require('../db/database');
 
-const PAYFAST = {
-  merchantId: process.env.PAYFAST_MERCHANT_ID || '10000100',
-  merchantKey: process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a',
-  passphrase: process.env.PAYFAST_PASSPHRASE || 'jt7NOE43FZPn',  // Sandbox default
-  processUrl: process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process',
-  validateUrl: process.env.PAYFAST_VALIDATE_URL || 'https://sandbox.payfast.co.za/eng/query/validate',
-  returnUrl: process.env.PAYFAST_RETURN_URL || 'http://localhost:3001/payment/success',
-  cancelUrl: process.env.PAYFAST_CANCEL_URL || 'http://localhost:3001/payment/cancel',
-  notifyUrl: process.env.PAYFAST_NOTIFY_URL || 'http://localhost:3000/api/payfast/notify',
-};
+const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '10000100';
+const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a';
+const PAYFAST_PASSPHRASE = process.env.PAYFAST_PASSPHRASE || 'jt7NOE43FZPn';
+const PAYFAST_SANDBOX = (process.env.PAYFAST_URL || 'sandbox').includes('sandbox');
+const PAYFAST_URL = process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process';
+const PAYFAST_VALIDATE_URL = process.env.PAYFAST_VALIDATE_URL || 'https://sandbox.payfast.co.za/eng/query/validate';
+const PAYFAST_RETURN_URL = process.env.PAYFAST_RETURN_URL || 'http://localhost:3001/payment/success';
+const PAYFAST_CANCEL_URL = process.env.PAYFAST_CANCEL_URL || 'http://localhost:3001/payment/cancel';
+const PAYFAST_NOTIFY_URL = process.env.PAYFAST_NOTIFY_URL || 'http://localhost:3000/api/payfast/notify';
 
-// Valid PayFast source IPs (for ITN verification)
-const PAYFAST_IPS = [
-  '197.97.145.144/28', '41.74.179.192/27',  // Production
-  '197.97.145.145', '197.97.145.146', '197.97.145.147',
-  '41.74.179.193', '41.74.179.194', '41.74.179.195',
+// PayFast REQUIRES this exact field order for signature generation
+const FIELD_ORDER = [
+  'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+  'name_first', 'name_last', 'email_address', 'cell_number',
+  'm_payment_id', 'amount', 'item_name', 'item_description',
+  'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
+  'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
+  'email_confirmation', 'confirmation_address', 'payment_method',
+  'subscription_type', 'billing_date', 'recurring_amount', 'frequency', 'cycles',
 ];
+
+/**
+ * Generate PayFast MD5 signature.
+ * CRITICAL: Fields must be in PayFast's required order.
+ * Empty values must be excluded. Passphrase only appended if non-empty.
+ */
+function generateSignature(data, passphrase) {
+  // Build priority map from FIELD_ORDER
+  const fieldPriority = {};
+  FIELD_ORDER.forEach((k, i) => { fieldPriority[k] = i; });
+
+  // Sort keys by PayFast's required order
+  const sortedKeys = Object.keys(data).sort((a, b) => {
+    const pa = fieldPriority[a] !== undefined ? fieldPriority[a] : 999;
+    const pb = fieldPriority[b] !== undefined ? fieldPriority[b] : 999;
+    return pa - pb;
+  });
+
+  // Build param string — skip empty values and 'signature' key
+  const parts = [];
+  for (const key of sortedKeys) {
+    const val = String(data[key]).trim();
+    if (val && key !== 'signature') {
+      parts.push(`${key}=${encodeURIComponent(val).replace(/%20/g, '+')}`);
+    }
+  }
+
+  let paramString = parts.join('&');
+
+  // Append passphrase if set
+  if (passphrase && passphrase.trim()) {
+    paramString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
+  }
+
+  return crypto.createHash('md5').update(paramString).digest('hex');
+}
+
+/**
+ * Get the 1st of next month in Y-m-d format (PayFast requirement)
+ */
+function getNextBillingDate() {
+  const today = new Date();
+  const month = today.getMonth() + 1; // 0-indexed
+  if (month === 12) {
+    return `${today.getFullYear() + 1}-01-01`;
+  }
+  return `${today.getFullYear()}-${String(month + 1).padStart(2, '0')}-01`;
+}
 
 /**
  * Generate PayFast payment form data for subscription
@@ -32,74 +83,54 @@ function generatePaymentData(member, tier) {
   const tierConfig = TIERS[tier];
   if (!tierConfig) throw new Error(`Invalid tier: ${tier}`);
 
+  const phone = (member.phone || '').replace(/[^0-9]/g, '');
+
   const data = {
-    merchant_id: PAYFAST.merchantId,
-    merchant_key: PAYFAST.merchantKey,
-    return_url: PAYFAST.returnUrl,
-    cancel_url: PAYFAST.cancelUrl,
-    notify_url: PAYFAST.notifyUrl,
+    merchant_id: PAYFAST_MERCHANT_ID,
+    merchant_key: PAYFAST_MERCHANT_KEY,
+    return_url: PAYFAST_RETURN_URL,
+    cancel_url: PAYFAST_CANCEL_URL,
+    notify_url: PAYFAST_NOTIFY_URL,
     name_first: member.first_name,
     name_last: member.last_name,
     email_address: member.email,
-    cell_number: member.phone?.replace(/[^0-9]/g, ''),
-    m_payment_id: `CI-${member.id.slice(0,8)}-${Date.now()}`,
+    m_payment_id: `CI${Date.now()}`,
     amount: tierConfig.price.toFixed(2),
-    item_name: `CarsIgnite ${tierConfig.name} Membership`,
-    item_description: `Monthly ${tierConfig.name} tier subscription - GPS tracking, group chat, events`,
-    // Recurring billing
-    subscription_type: '1',  // 1 = subscription
-    billing_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    recurring_amount: tierConfig.price.toFixed(2),
-    frequency: '3',  // 3 = monthly
-    cycles: '0',     // 0 = indefinite
-    // Custom fields
+    item_name: `CarsIgnite ${tierConfig.name} Monthly`,
+    item_description: `${tierConfig.name} tier membership`,
     custom_str1: member.id,
     custom_str2: tier,
-    custom_int1: tierConfig.entries.toString(),
+    subscription_type: '1',
+    billing_date: getNextBillingDate(),
+    recurring_amount: tierConfig.price.toFixed(2),
+    frequency: '3',
+    cycles: '0',
   };
 
-  // Generate signature — PayFast requires specific encoding
-  // Remove empty/undefined values, preserve key order
-  const filteredData = {};
-  for (const [k, v] of Object.entries(data)) {
-    if (v !== '' && v !== undefined && v !== null) filteredData[k] = v;
+  // Only add cell_number if valid (10+ digits)
+  if (phone && phone.length >= 10) {
+    data.cell_number = phone;
   }
 
-  const pfParamString = Object.entries(filteredData)
-    .map(([k, v]) => `${k}=${encodeURIComponent(String(v)).replace(/%20/g, '+')}`)
-    .join('&');
+  // Generate signature with field ordering
+  const signature = generateSignature(data, PAYFAST_PASSPHRASE);
+  data.signature = signature;
 
-  const sigString = PAYFAST.passphrase
-    ? `${pfParamString}&passphrase=${encodeURIComponent(PAYFAST.passphrase).replace(/%20/g, '+')}`
-    : pfParamString;
+  console.log('[PayFast] Checkout generated for', member.email, '| tier:', tier, '| amount: R' + data.amount);
 
-  data.signature = crypto.createHash('md5').update(sigString).digest('hex');
-
-  return { data, url: PAYFAST.processUrl };
+  return { data, url: PAYFAST_URL };
 }
 
 /**
- * Verify PayFast ITN (Instant Transaction Notification)
+ * Verify PayFast ITN signature
  */
-function verifyITN(body, headers) {
-  // 1. Verify source IP (in production)
-  // 2. Verify signature
-  const received = { ...body };
-  const receivedSig = received.signature;
-  delete received.signature;
-
-  const paramString = Object.keys(received)
-    .filter(k => received[k] !== '')
-    .map(k => `${k}=${encodeURIComponent(received[k]).replace(/%20/g, '+')}`)
-    .join('&');
-
-  const fullString = PAYFAST.passphrase
-    ? `${paramString}&passphrase=${encodeURIComponent(PAYFAST.passphrase)}`
-    : paramString;
-
-  const computedSig = crypto.createHash('md5').update(fullString).digest('hex');
-
-  return computedSig === receivedSig;
+function verifyITN(postData) {
+  const dataCopy = {};
+  for (const [k, v] of Object.entries(postData)) {
+    if (k !== 'signature') dataCopy[k] = v;
+  }
+  const expectedSig = generateSignature(dataCopy, PAYFAST_PASSPHRASE);
+  return postData.signature === expectedSig;
 }
 
 /**
@@ -116,14 +147,15 @@ async function processITN(body) {
     status: paymentStatus, amount: body.amount_gross, memberId
   });
 
+  console.log(`[PayFast ITN] status=${paymentStatus} tier=${tier} memberId=${memberId} amount=R${body.amount_gross}`);
+
   if (paymentStatus === 'COMPLETE') {
-    // Find existing subscription (active or pending) or create new one
     const subs = Subscriptions.getByMember(memberId);
     let sub = subs.find(s => s.status === 'active') || subs.find(s => s.status === 'pending') || subs[0];
+
     if (!sub) {
       sub = Subscriptions.create({
-        memberId, tier,
-        status: 'active',
+        memberId, tier, status: 'active',
         payfastToken: body.token || null,
         payfastSubId: body.m_payment_id,
       });
@@ -138,10 +170,8 @@ async function processITN(body) {
       });
     }
 
-    // Record payment
     Payments.create({
-      subscriptionId: sub.id,
-      memberId,
+      subscriptionId: sub.id, memberId,
       amount: parseFloat(body.amount_gross),
       status: 'completed',
       payfastPaymentId: body.pf_payment_id,
@@ -149,14 +179,14 @@ async function processITN(body) {
       method: body.payment_method || 'card',
     });
 
-    // Ensure member is active
     Members.update(memberId, { status: 'active' });
-
+    console.log(`[PayFast] Activated member ${memberId} on ${tier}`);
     return { success: true, action: 'payment_recorded' };
   }
 
   if (paymentStatus === 'FAILED') {
-    const sub = Subscriptions.getActive(memberId);
+    const subs = Subscriptions.getByMember(memberId);
+    const sub = subs.find(s => s.status === 'active' || s.status === 'pending');
     if (sub) {
       const attempts = (sub.failed_attempts || 0) + 1;
       Subscriptions.update(sub.id, { failed_attempts: attempts });
@@ -169,8 +199,9 @@ async function processITN(body) {
   }
 
   if (paymentStatus === 'CANCELLED') {
-    const sub = Subscriptions.getActive(memberId);
-    if (sub) Subscriptions.cancel(sub.id);
+    const subs = Subscriptions.getByMember(memberId);
+    const sub = subs.find(s => s.status === 'active' || s.status === 'pending');
+    if (sub) Subscriptions.update(sub.id, { status: 'cancelled', cancelled_at: new Date().toISOString() });
     Members.update(memberId, { status: 'cancelled' });
     return { success: true, action: 'subscription_cancelled' };
   }
@@ -178,4 +209,9 @@ async function processITN(body) {
   return { success: true, action: 'no_action' };
 }
 
-module.exports = { PAYFAST, generatePaymentData, verifyITN, processITN };
+module.exports = {
+  PAYFAST: { merchantId: PAYFAST_MERCHANT_ID, merchantKey: PAYFAST_MERCHANT_KEY, processUrl: PAYFAST_URL },
+  generatePaymentData,
+  verifyITN,
+  processITN,
+};
