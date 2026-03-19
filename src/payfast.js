@@ -10,7 +10,7 @@ const { Subscriptions, Payments, Members, Audit, TIERS } = require('../db/databa
 const PAYFAST = {
   merchantId: process.env.PAYFAST_MERCHANT_ID || '10000100',
   merchantKey: process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a',
-  passphrase: process.env.PAYFAST_PASSPHRASE || '',
+  passphrase: process.env.PAYFAST_PASSPHRASE || 'jt7NOE43FZPn',  // Sandbox default
   processUrl: process.env.PAYFAST_URL || 'https://sandbox.payfast.co.za/eng/process',
   validateUrl: process.env.PAYFAST_VALIDATE_URL || 'https://sandbox.payfast.co.za/eng/query/validate',
   returnUrl: process.env.PAYFAST_RETURN_URL || 'http://localhost:3001/payment/success',
@@ -58,17 +58,22 @@ function generatePaymentData(member, tier) {
     custom_int1: tierConfig.entries.toString(),
   };
 
-  // Generate signature
-  const signatureString = Object.keys(data)
-    .filter(k => data[k] !== '' && data[k] !== undefined)
-    .map(k => `${k}=${encodeURIComponent(data[k]).replace(/%20/g, '+')}`)
+  // Generate signature — PayFast requires specific encoding
+  // Remove empty/undefined values, preserve key order
+  const filteredData = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== '' && v !== undefined && v !== null) filteredData[k] = v;
+  }
+
+  const pfParamString = Object.entries(filteredData)
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v)).replace(/%20/g, '+')}`)
     .join('&');
 
-  const fullString = PAYFAST.passphrase
-    ? `${signatureString}&passphrase=${encodeURIComponent(PAYFAST.passphrase)}`
-    : signatureString;
+  const sigString = PAYFAST.passphrase
+    ? `${pfParamString}&passphrase=${encodeURIComponent(PAYFAST.passphrase).replace(/%20/g, '+')}`
+    : pfParamString;
 
-  data.signature = crypto.createHash('md5').update(fullString).digest('hex');
+  data.signature = crypto.createHash('md5').update(sigString).digest('hex');
 
   return { data, url: PAYFAST.processUrl };
 }
