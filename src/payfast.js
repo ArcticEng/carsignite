@@ -88,7 +88,7 @@ function generatePaymentData(member, tier) {
   const data = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
-    return_url: PAYFAST_RETURN_URL,
+    return_url: `${PAYFAST_RETURN_URL}?tier=${tier}`,
     cancel_url: PAYFAST_CANCEL_URL,
     notify_url: PAYFAST_NOTIFY_URL,
     name_first: member.first_name,
@@ -162,6 +162,8 @@ async function processITN(body) {
     } else {
       Subscriptions.update(sub.id, {
         status: 'active',
+        tier: tier,
+        amount: TIERS[tier] ? TIERS[tier].price : sub.amount,
         payfast_token: body.token || sub.payfast_token,
         payfast_sub_id: body.m_payment_id || sub.payfast_sub_id,
         last_payment: new Date().toISOString(),
@@ -179,8 +181,9 @@ async function processITN(body) {
       method: body.payment_method || 'card',
     });
 
-    Members.update(memberId, { status: 'active' });
-    console.log(`[PayFast] Activated member ${memberId} on ${tier}`);
+    // Update member status AND tier (critical for free → paid upgrades)
+    Members.update(memberId, { status: 'active', tier: tier });
+    console.log(`[PayFast] Activated member ${memberId} on tier: ${tier}`);
     return { success: true, action: 'payment_recorded' };
   }
 
