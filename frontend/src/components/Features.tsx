@@ -9,7 +9,7 @@ const FEATURES = [
 
 export function Features() {
   return (
-    <section className="py-20 px-5 bg-bg-2 relative">
+    <section className="py-20 px-5 bg-[#2A2A2A] relative">
       <div className="max-w-[1120px] mx-auto">
         <div className="text-center mb-12">
           <span className="text-[11px] font-bold tracking-[3px] text-ci-red uppercase">THE PLATFORM</span>

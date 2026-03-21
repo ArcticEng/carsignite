@@ -61,7 +61,7 @@ function generateToken(member) {
 // ═══════════════════════════════════════════
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, idNumber, city, province, tier } = req.body;
+    const { firstName, lastName, email, phone, password, idNumber, city, province, tier, currentCar, dreamCar, dreamWatch, dreamHouse } = req.body;
     
     if (!firstName || !lastName || !email || !phone || !tier) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -73,10 +73,12 @@ app.post('/api/auth/register', async (req, res) => {
 
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
     
-    const member = Members.create({ firstName, lastName, email, phone, passwordHash, idNumber, city, province, tier });
-    const subscription = Subscriptions.create({ memberId: member.id, tier });
-    
-    // Member starts as 'pending' — activated when PayFast ITN confirms payment
+    // Free tier = immediately active, paid tiers = pending until PayFast confirms
+    const isFree = tier === 'free';
+    const member = Members.create({ firstName, lastName, email, phone, passwordHash, idNumber, city, province, tier, currentCar, dreamCar, dreamWatch, dreamHouse, status: isFree ? 'active' : 'pending' });
+    const subscription = isFree
+      ? Subscriptions.create({ memberId: member.id, tier, status: 'active' })
+      : Subscriptions.create({ memberId: member.id, tier });
     
     const token = generateToken(member);
     
@@ -401,6 +403,30 @@ app.get('/api/admin/audit', adminAuth, (req, res) => {
   res.json({ logs, total: logs.length });
 });
 
+// Admin: member preferences/insights for prize decisions
+app.get('/api/admin/insights', adminAuth, (req, res) => {
+  const db = require('../db/database').getDb();
+  const members = db.prepare(`SELECT first_name, last_name, email, tier, current_car, dream_car, dream_watch, dream_house FROM members WHERE role != 'admin' AND (dream_car IS NOT NULL OR dream_watch IS NOT NULL OR dream_house IS NOT NULL)`).all();
+  
+  // Aggregate top dream items
+  const dreamCars = {}; const dreamWatches = {}; const dreamHouses = {};
+  members.forEach(m => {
+    if (m.dream_car) dreamCars[m.dream_car] = (dreamCars[m.dream_car] || 0) + 1;
+    if (m.dream_watch) dreamWatches[m.dream_watch] = (dreamWatches[m.dream_watch] || 0) + 1;
+    if (m.dream_house) dreamHouses[m.dream_house] = (dreamHouses[m.dream_house] || 0) + 1;
+  });
+  
+  const sortByCount = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
+  
+  res.json({
+    members,
+    totals: { withPreferences: members.length },
+    topDreamCars: sortByCount(dreamCars).slice(0, 10),
+    topDreamWatches: sortByCount(dreamWatches).slice(0, 10),
+    topDreamHouses: sortByCount(dreamHouses).slice(0, 10),
+  });
+});
+
 app.post('/api/admin/reset', adminAuth, (req, res) => {
   // Dangerous! Only for development
   if (process.env.NODE_ENV === 'production') {
@@ -442,10 +468,16 @@ app.get('/api/prizes', auth, (req, res) => {
 
 // Public prize showcase — no auth, used on landing page and member hype page
 app.get('/api/prizes/showcase', (req, res) => {
+  const { getDb } = require('../db/database');
   const prizes = PrizeConfig.getAll();
   const now = new Date();
   const daysLeft = Math.max(1, Math.ceil((new Date(now.getFullYear(), now.getMonth() + 1, 0).getTime() - now.getTime()) / 86400000));
   const nextDrawDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10);
+  
+  // Entry counts for odds disclosure
+  const totalMembers = getDb().prepare("SELECT COUNT(*) as c FROM members WHERE status = 'active'").get().c;
+  const totalEntries = getDb().prepare("SELECT SUM(CASE tier WHEN 'free' THEN 1 WHEN 'ignite' THEN 3 WHEN 'apex' THEN 10 WHEN 'dynasty' THEN 25 ELSE 1 END) as e FROM members WHERE status = 'active'").get().e || 0;
+
   res.json({
     prizes: prizes.map(p => ({
       tier: p.tier,
@@ -455,6 +487,25 @@ app.get('/api/prizes/showcase', (req, res) => {
     })),
     daysLeft,
     nextDrawDate,
+    totalMembers,
+    totalEntries,
+  });
+});
+
+// Public — winner history (no auth required, builds trust & transparency)
+app.get('/api/winners', (req, res) => {
+  const draws = Draws.getAll(parseInt(req.query.limit) || 50);
+  res.json({
+    winners: draws.map(d => ({
+      winner_name: d.winner_name,
+      winner_city: d.winner_city,
+      prize_name: d.prize_name,
+      prize_value: d.prize_value,
+      tier: d.tier,
+      draw_date: d.draw_date,
+      total_entrants: d.total_entrants,
+      total_entries: d.total_entries,
+    })),
   });
 });
 

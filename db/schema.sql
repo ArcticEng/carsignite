@@ -14,10 +14,14 @@ CREATE TABLE IF NOT EXISTS members (
     id_number       TEXT,
     city            TEXT,
     province        TEXT NOT NULL DEFAULT 'gauteng',
-    tier            TEXT NOT NULL CHECK(tier IN ('ignite','apex','dynasty')),
+    tier            TEXT NOT NULL CHECK(tier IN ('free','ignite','apex','dynasty')),
     role            TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('member','admin')),
     status          TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('active','pending','paused','cancelled','suspended')),
     avatar_url      TEXT,
+    current_car     TEXT,
+    dream_car       TEXT,
+    dream_watch     TEXT,
+    dream_house     TEXT,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -26,7 +30,7 @@ CREATE TABLE IF NOT EXISTS members (
 CREATE TABLE IF NOT EXISTS subscriptions (
     id              TEXT PRIMARY KEY,
     member_id       TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-    tier            TEXT NOT NULL CHECK(tier IN ('ignite','apex','dynasty')),
+    tier            TEXT NOT NULL CHECK(tier IN ('free','ignite','apex','dynasty')),
     amount          REAL NOT NULL,
     currency        TEXT NOT NULL DEFAULT 'ZAR',
     frequency       TEXT NOT NULL DEFAULT 'monthly' CHECK(frequency IN ('monthly','quarterly','annual')),
@@ -70,7 +74,7 @@ CREATE TABLE IF NOT EXISTS draw_entries (
 -- Draws table — completed giveaway draws
 CREATE TABLE IF NOT EXISTS draws (
     id              TEXT PRIMARY KEY,
-    tier            TEXT NOT NULL CHECK(tier IN ('ignite','apex','dynasty')),
+    tier            TEXT NOT NULL CHECK(tier IN ('free','ignite','apex','dynasty')),
     prize_name      TEXT NOT NULL,
     prize_desc      TEXT,
     prize_value     REAL DEFAULT 0,
@@ -184,7 +188,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Prize configuration — admin sets prizes per tier
 CREATE TABLE IF NOT EXISTS prize_config (
     id              TEXT PRIMARY KEY,
-    tier            TEXT NOT NULL UNIQUE CHECK(tier IN ('ignite','apex','dynasty')),
+    tier            TEXT NOT NULL UNIQUE CHECK(tier IN ('free','ignite','apex','dynasty')),
     prize_name      TEXT NOT NULL,
     prize_desc      TEXT,
     prize_value     REAL DEFAULT 0,

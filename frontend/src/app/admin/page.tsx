@@ -10,6 +10,7 @@ const TABS = [
   { id: 'members', label: 'Members', icon: '👥' },
   { id: 'subs', label: 'Subs', icon: '💳' },
   { id: 'prizes', label: 'Prizes', icon: '🎁' },
+  { id: 'insights', label: 'Insights', icon: '🎯' },
   { id: 'draws', label: 'Draws', icon: '🎰' },
   { id: 'audit', label: 'Audit', icon: '📋' },
 ];
@@ -73,7 +74,7 @@ export default function AdminPage() {
         <div className="flex gap-[3px] bg-[rgba(255,255,255,.02)] rounded-xl p-1 border border-glass-border overflow-x-auto mb-4">
           {TABS.map(tb => (
             <button key={tb.id} onClick={() => setTab(tb.id)}
-              className={`px-4 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${tab === tb.id ? 'bg-[rgba(230,57,70,.1)] text-white font-semibold shadow-[0_0_15px_rgba(230,57,70,.08)]' : 'text-[#58586a] hover:text-[#9898a8]'}`}>
+              className={`px-4 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all ${tab === tb.id ? 'bg-[rgba(224,52,85,.1)] text-white font-semibold shadow-[0_0_15px_rgba(224,52,85,.08)]' : 'text-[#6E7275] hover:text-[#E7E5E6]'}`}>
               {tb.icon} {tb.label}
             </button>
           ))}
@@ -82,6 +83,7 @@ export default function AdminPage() {
         {tab === 'members' && <MembersTab toast={toast} />}
         {tab === 'subs' && <SubsTab />}
         {tab === 'prizes' && <PrizesConfigTab toast={toast} />}
+        {tab === 'insights' && <InsightsTab />}
         {tab === 'draws' && <DrawsTab toast={toast} />}
         {tab === 'audit' && <AuditTab />}
       </div>
@@ -318,6 +320,87 @@ function DrawsTab({ toast }: { toast: any }) {
       ))}
       {draws.length === 0 && <div className="text-center py-4 text-[#58586a] text-xs">No draws</div>}
     </div>
+  );
+}
+
+function InsightsTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/admin/insights').then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="glass-card p-10 text-center"><div className="w-8 h-8 border-2 border-glass-border border-t-ci-red rounded-full animate-spin mx-auto" /></div>;
+  if (!data) return <div className="glass-card p-7 text-center text-[#6E7275]">Could not load insights</div>;
+
+  const TopList = ({ title, icon, items }: { title: string; icon: string; items: { name: string; count: number }[] }) => (
+    <div className="glass-card p-5">
+      <h4 className="font-bold text-sm mb-3">{icon} {title}</h4>
+      {items.length === 0 ? (
+        <p className="text-xs text-[#6E7275] text-center py-4">No data yet</p>
+      ) : items.map((item: any, i: number) => (
+        <div key={item.name} className="flex items-center justify-between py-2 border-b border-[rgba(255,255,255,.06)] last:border-0">
+          <div className="flex items-center gap-2">
+            <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-[rgba(224,52,85,.15)] text-ci-red-light' : 'bg-[rgba(255,255,255,.05)] text-[#6E7275]'}`}>{i + 1}</span>
+            <span className="text-[13px] font-medium">{item.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-16 h-1.5 bg-[rgba(255,255,255,.06)] rounded-full overflow-hidden">
+              <div className="h-full bg-ci-red rounded-full" style={{ width: `${Math.min(100, (item.count / (items[0]?.count || 1)) * 100)}%` }} />
+            </div>
+            <span className="text-[11px] text-[#6E7275] font-mono w-6 text-right">{item.count}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <>
+      <div className="glass-card p-5 mb-4">
+        <h3 className="font-bold text-[15px] mb-1">🎯 Member Dream Insights</h3>
+        <p className="text-xs text-[#6E7275] mb-4">Based on {data.totals?.withPreferences || 0} members who shared preferences. Use this to decide upcoming prizes.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <TopList title="Top Dream Cars" icon="🏎️" items={data.topDreamCars || []} />
+        <TopList title="Top Dream Watches" icon="⌚" items={data.topDreamWatches || []} />
+        <TopList title="Top Dream Houses" icon="🏠" items={data.topDreamHouses || []} />
+      </div>
+
+      {/* Full member preferences table */}
+      <div className="glass-card overflow-hidden">
+        <div className="p-4 border-b border-[rgba(255,255,255,.06)]">
+          <h4 className="font-bold text-sm">All Member Preferences</h4>
+        </div>
+        <div className="overflow-x-auto p-1">
+          <table className="w-full text-xs">
+            <thead><tr className="text-[9px] text-[#6E7275] tracking-[2px] uppercase">
+              <th className="p-3 text-left border-b border-glass-border">Member</th>
+              <th className="p-3 text-left border-b border-glass-border">Tier</th>
+              <th className="p-3 text-left border-b border-glass-border">🚗 Current Car</th>
+              <th className="p-3 text-left border-b border-glass-border">🏎️ Dream Car</th>
+              <th className="p-3 text-left border-b border-glass-border">⌚ Dream Watch</th>
+              <th className="p-3 text-left border-b border-glass-border">🏠 Dream House</th>
+            </tr></thead>
+            <tbody>
+              {(data.members || []).map((m: any, i: number) => (
+                <tr key={i} className="hover:bg-[rgba(224,52,85,.02)]">
+                  <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{m.first_name} {m.last_name}</td>
+                  <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={m.tier} small /></td>
+                  <td className="p-3 text-[#E7E5E6] border-b border-[rgba(255,255,255,.03)]">{m.current_car || '—'}</td>
+                  <td className="p-3 text-[#E7E5E6] border-b border-[rgba(255,255,255,.03)]">{m.dream_car || '—'}</td>
+                  <td className="p-3 text-[#E7E5E6] border-b border-[rgba(255,255,255,.03)]">{m.dream_watch || '—'}</td>
+                  <td className="p-3 text-[#E7E5E6] border-b border-[rgba(255,255,255,.03)]">{m.dream_house || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {(data.members || []).length === 0 && <div className="text-center py-10 text-[#6E7275] text-sm">No member preferences yet</div>}
+        </div>
+      </div>
+    </>
   );
 }
 

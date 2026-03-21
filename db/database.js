@@ -27,9 +27,10 @@ function getDb() {
 
 // ═══ TIER CONFIG ═══
 const TIERS = {
-  ignite:  { name: 'IGNITE',  price: 49,  entries: 1,  freq: 'monthly',   prize: 'Luxury Watch',  prizeValue: 25000 },
-  apex:    { name: 'APEX',    price: 99,  entries: 5,  freq: 'monthly',   prize: 'Supercar',      prizeValue: 2500000 },
-  dynasty: { name: 'DYNASTY', price: 899, entries: 15, freq: 'quarterly', prize: 'Luxury Home',   prizeValue: 4200000 },
+  free:    { name: 'FREE',    price: 0,   entries: 1,  freq: 'monthly',   prize: 'Monthly Draw',  prizeValue: 0 },
+  ignite:  { name: 'IGNITE',  price: 49,  entries: 3,  freq: 'monthly',   prize: 'Luxury Watch',  prizeValue: 25000 },
+  apex:    { name: 'APEX',    price: 99,  entries: 10, freq: 'monthly',   prize: 'Supercar',      prizeValue: 2500000 },
+  dynasty: { name: 'DYNASTY', price: 899, entries: 25, freq: 'quarterly', prize: 'Luxury Home',   prizeValue: 4200000 },
 };
 
 // ═══════════════════════════════════════════
@@ -40,10 +41,11 @@ const Members = {
     const d = getDb();
     const id = uuid();
     d.prepare(`
-      INSERT INTO members (id, first_name, last_name, email, phone, password_hash, id_number, city, province, tier, role, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO members (id, first_name, last_name, email, phone, password_hash, id_number, city, province, tier, role, status, current_car, dream_car, dream_watch, dream_house)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, data.firstName, data.lastName, data.email.toLowerCase(), data.phone, data.passwordHash || null,
-           data.idNumber || null, data.city || null, data.province || 'gauteng', data.tier, data.role || 'member', data.status || 'pending');
+           data.idNumber || null, data.city || null, data.province || 'gauteng', data.tier, data.role || 'member', data.status || 'pending',
+           data.currentCar || null, data.dreamCar || null, data.dreamWatch || null, data.dreamHouse || null);
     
     Audit.log('system', 'member_created', 'member', id, { email: data.email, tier: data.tier });
     return this.getById(id);
@@ -69,7 +71,7 @@ const Members = {
 
   update(id, data) {
     const sets = []; const vals = [];
-    const allowed = ['first_name','last_name','phone','city','province','tier','role','status','avatar_url'];
+    const allowed = ['first_name','last_name','phone','city','province','tier','role','status','avatar_url','current_car','dream_car','dream_watch','dream_house'];
     for (const [k,v] of Object.entries(data)) {
       if (allowed.includes(k)) { sets.push(`${k} = ?`); vals.push(v); }
     }

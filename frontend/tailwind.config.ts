@@ -5,18 +5,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: { DEFAULT: '#030305', 2: '#08080c', 3: '#0e0e14' },
+        bg: { DEFAULT: '#1E1E1E', 2: '#2A2A2A', 3: '#3A3A3A' },
         ci: {
-          red: '#e63946',
-          'red-light': '#ff4d5a',
-          'red-dark': '#b52030',
+          red: '#E03455',
+          'red-light': '#E8476A',
+          'red-dark': '#C42A47',
           gold: '#d4a020',
           'gold-light': '#f0c040',
           green: '#22cc6e',
           blue: '#4488ff',
           purple: '#9966ff',
         },
-        glass: { DEFAULT: 'rgba(255,255,255,0.03)', light: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.06)' },
+        glass: { DEFAULT: 'rgba(255,255,255,0.05)', light: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.08)' },
       },
       fontFamily: {
         heading: ['Bebas Neue', 'sans-serif'],
@@ -25,21 +25,21 @@ const config: Config = {
       },
       borderRadius: { ci: '16px', 'ci-sm': '12px' },
       boxShadow: {
-        glow: '0 0 30px rgba(230,57,70,0.08), 0 0 60px rgba(230,57,70,0.04)',
-        'glow-strong': '0 0 30px rgba(230,57,70,0.15), 0 0 60px rgba(230,57,70,0.08)',
-        card: '0 0 0 1px rgba(230,57,70,0.04), 0 4px 24px rgba(0,0,0,0.5), 0 0 40px rgba(230,57,70,0.03)',
+        glow: '0 0 30px rgba(224,52,85,0.08), 0 0 60px rgba(224,52,85,0.04)',
+        'glow-strong': '0 0 30px rgba(224,52,85,0.18), 0 0 60px rgba(224,52,85,0.08)',
+        card: '0 0 0 1px rgba(224,52,85,0.04), 0 4px 24px rgba(0,0,0,0.4), 0 0 40px rgba(224,52,85,0.03)',
       },
       keyframes: {
         fadeUp: { from: { opacity: '0', transform: 'translateY(16px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
         float: { '0%': { transform: 'translateY(0) scale(1)' }, '100%': { transform: 'translateY(-15px) scale(1.05)' } },
         shimmer: { to: { backgroundPosition: '200% center' } },
         'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(230,57,70,0.15)' },
-          '50%': { boxShadow: '0 0 40px rgba(230,57,70,0.3)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(224,52,85,0.15)' },
+          '50%': { boxShadow: '0 0 40px rgba(224,52,85,0.3)' },
         },
         'border-glow': {
-          '0%, 100%': { borderColor: 'rgba(230,57,70,0.12)' },
-          '50%': { borderColor: 'rgba(230,57,70,0.25)' },
+          '0%, 100%': { borderColor: 'rgba(224,52,85,0.12)' },
+          '50%': { borderColor: 'rgba(224,52,85,0.3)' },
         },
       },
       animation: {

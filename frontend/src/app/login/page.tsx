@@ -37,31 +37,31 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-[rgba(230,57,70,.08)] border border-[rgba(230,57,70,.2)] rounded-xl p-3 mb-4 text-xs text-ci-red-light">
+          <div className="bg-[rgba(224,52,85,.08)] border border-[rgba(224,52,85,.2)] rounded-xl p-3 mb-4 text-xs text-ci-red-light">
             ⚠ {error}
           </div>
         )}
 
         <div className="glass-card p-7">
           <div className="mb-3.5">
-            <label className="block text-[11px] font-semibold text-[#58586a] mb-1.5 tracking-wider uppercase">Email</label>
+            <label className="block text-[11px] font-semibold text-[#6E7275] mb-1.5 tracking-wider uppercase">Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-3.5 py-3 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(230,57,70,.12)]"
+              className="w-full px-3.5 py-3 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(224,52,85,.12)]"
               placeholder="your@email.com" />
           </div>
           <div className="mb-5">
-            <label className="block text-[11px] font-semibold text-[#58586a] mb-1.5 tracking-wider uppercase">Password</label>
+            <label className="block text-[11px] font-semibold text-[#6E7275] mb-1.5 tracking-wider uppercase">Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              className="w-full px-3.5 py-3 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(230,57,70,.12)]"
+              className="w-full px-3.5 py-3 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(224,52,85,.12)]"
               placeholder="Password" />
           </div>
           <button onClick={handleSubmit} disabled={loading}
             className="btn btn-red w-full py-3.5 text-sm tracking-[2px]">
             {loading ? 'Logging in...' : 'LOG IN'}
           </button>
-          <p className="text-center mt-4 text-[13px] text-[#58586a]">
-            No account? <Link href="/signup" className="text-ci-red font-semibold hover:text-ci-red-light">Join CarsIgnite</Link>
+          <p className="text-center mt-4 text-[13px] text-[#6E7275]">
+            No account? <Link href="/signup" className="text-ci-green font-semibold">Register free</Link> for 1 draw entry, or <Link href="/#pricing" className="text-ci-red font-semibold hover:text-ci-red-light">subscribe for bonus entries</Link>
           </p>
         </div>
       </div>

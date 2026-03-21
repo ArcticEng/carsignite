@@ -1,15 +1,13 @@
 'use client';
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
-import { TIERS, TierBadge } from '@/lib/tiers';
 
 function SignupForm() {
-  const params = useSearchParams();
   const [step, setStep] = useState(1);
-  const [data, setData] = useState<any>({ tier: params.get('tier') || 'apex' });
+  const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { register } = useAuth();
@@ -29,154 +27,174 @@ function SignupForm() {
   const submit = async () => {
     setLoading(true); setError('');
     try {
-      await register(data);
-      toast('Account created! Redirecting to payment...', 'success');
-      setTimeout(() => router.push(`/payment?tier=${data.tier}`), 500);
+      // Everyone registers as free tier — gets 1 draw entry automatically
+      await register({ ...data, tier: 'free' });
+      toast('Welcome! You\'re entered in the next draw.', 'success');
+      setTimeout(() => router.push('/dashboard'), 500);
     } catch (e: any) {
       setError(e.message); setLoading(false);
     }
   };
 
-  const t = TIERS[data.tier] || TIERS.apex;
+  const totalSteps = 3;
+  const inputClass = "w-full px-3.5 py-3 bg-[rgba(255,255,255,.05)] border border-[rgba(255,255,255,.1)] rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(224,52,85,.12)] outline-none";
 
   return (
     <section className="min-h-dvh px-5 pt-24 pb-10">
       <div className="max-w-[520px] mx-auto animate-fade-up">
         <div className="text-center mb-7">
-          <span className="text-[11px] font-bold tracking-[3px] text-ci-gold-light uppercase">REGISTRATION</span>
+          <span className="text-[11px] font-bold tracking-[3px] text-ci-gold-light uppercase">REGISTER</span>
           <h2 className="font-heading text-3xl tracking-[3px] mt-2">JOIN CARSIGNITE</h2>
+          <p className="text-[12px] text-[#6E7275] mt-2">Register for free and get 1 entry into every monthly draw.</p>
           <div className="flex justify-center gap-1.5 mt-4">
             {[1, 2, 3].map(s => (
               <div key={s} className="h-[3px] rounded transition-all duration-300"
-                style={{ width: s === step ? 32 : 8, background: s <= step ? '#e63946' : 'rgba(255,255,255,.06)' }} />
+                style={{ width: s === step ? 32 : 8, background: s <= step ? '#E03455' : 'rgba(255,255,255,.1)' }} />
             ))}
           </div>
         </div>
 
         {error && (
-          <div className="bg-[rgba(230,57,70,.08)] border border-[rgba(230,57,70,.2)] rounded-xl p-3 mb-4 text-xs text-ci-red-light">
+          <div className="bg-[rgba(224,52,85,.08)] border border-[rgba(224,52,85,.2)] rounded-xl p-3 mb-4 text-xs text-ci-red-light">
             ⚠ {error}
           </div>
         )}
 
         <div className="glass-card p-7">
+          {/* STEP 1: Personal Details */}
           {step === 1 && (
             <>
               <h3 className="text-[15px] font-bold mb-4">Personal Details</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[['firstName','First Name *'],['lastName','Last Name *']].map(([k,l]) => (
                   <div key={k}>
-                    <label className="block text-[11px] font-semibold text-[#58586a] mb-1 tracking-wider uppercase">{l}</label>
-                    <input value={data[k]||''} onChange={e => u(k, e.target.value)}
-                      className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" />
+                    <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">{l}</label>
+                    <input value={data[k]||''} onChange={e => u(k, e.target.value)} className={inputClass} />
                   </div>
                 ))}
               </div>
               {[['email','Email *','email'],['phone','Phone *','tel'],['idNumber','SA ID Number','text']].map(([k,l,type]) => (
                 <div key={k} className="mt-3">
-                  <label className="block text-[11px] font-semibold text-[#58586a] mb-1 tracking-wider uppercase">{l}</label>
-                  <input type={type} value={data[k]||''} onChange={e => u(k, e.target.value)}
-                    className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" />
+                  <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">{l}</label>
+                  <input type={type} value={data[k]||''} onChange={e => u(k, e.target.value)} className={inputClass} />
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#58586a] mb-1 tracking-wider uppercase">City</label>
-                  <input value={data.city||''} onChange={e => u('city', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" />
+                  <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">City</label>
+                  <input value={data.city||''} onChange={e => u('city', e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#58586a] mb-1 tracking-wider uppercase">Province</label>
+                  <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">Province</label>
                   <select value={data.province||'gauteng'} onChange={e => u('province', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm appearance-none">
+                    className={`${inputClass} appearance-none`}>
                     {provinces.map(p => <option key={p} value={p.toLowerCase().replace(/ /g,'_')}>{p}</option>)}
                   </select>
                 </div>
               </div>
               <div className="mt-3">
-                <label className="block text-[11px] font-semibold text-[#58586a] mb-1 tracking-wider uppercase">Password *</label>
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">Password *</label>
                 <input type="password" value={data.password||''} onChange={e => u('password', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" placeholder="Create a password" />
+                  className={inputClass} placeholder="Create a password" />
               </div>
               <button onClick={next1} className="btn btn-red w-full py-3.5 mt-5 text-sm tracking-[2px]">CONTINUE →</button>
             </>
           )}
 
+          {/* STEP 2: Dream Preferences */}
           {step === 2 && (
             <>
-              <h3 className="text-[15px] font-bold mb-4">Choose Membership</h3>
-              {Object.entries(TIERS).map(([id, tier]) => (
-                <div key={id} onClick={() => u('tier', id)}
-                  className="flex items-center justify-between p-4 rounded-xl cursor-pointer mb-2 transition-all border-2"
-                  style={{ background: data.tier === id ? 'rgba(230,57,70,.06)' : 'rgba(255,255,255,.03)', borderColor: data.tier === id ? tier.color : 'transparent' }}>
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[22px]">{tier.icon}</span>
-                    <div>
-                      <div className="font-bold text-sm">{tier.name}</div>
-                      <div className="text-[11px] text-[#58586a]">{tier.freq} {tier.prize} · {tier.entries}× entries</div>
-                    </div>
-                  </div>
-                  <div className="font-heading text-[22px] tracking-wide">
-                    R{tier.price}<span className="text-[11px] font-body text-[#58586a]">/mo</span>
-                  </div>
-                </div>
-              ))}
-              <div className="flex gap-2.5 mt-4">
+              <h3 className="text-[15px] font-bold mb-1">Your Dream Garage</h3>
+              <p className="text-[12px] text-[#6E7275] mb-5">Tell us about your rides and dreams — this helps us pick prizes you&apos;ll love.</p>
+              
+              <div className="mb-3">
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">🚗 Current Car</label>
+                <input value={data.currentCar||''} onChange={e => u('currentCar', e.target.value)}
+                  className={inputClass} placeholder="e.g. BMW M4 Competition" />
+              </div>
+              <div className="mb-3">
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">🏎️ Dream Car</label>
+                <input value={data.dreamCar||''} onChange={e => u('dreamCar', e.target.value)}
+                  className={inputClass} placeholder="e.g. Lamborghini Huracán" />
+              </div>
+              <div className="mb-3">
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">⌚ Dream Luxury Watch</label>
+                <input value={data.dreamWatch||''} onChange={e => u('dreamWatch', e.target.value)}
+                  className={inputClass} placeholder="e.g. Rolex Daytona" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">🏠 Dream House / Location</label>
+                <input value={data.dreamHouse||''} onChange={e => u('dreamHouse', e.target.value)}
+                  className={inputClass} placeholder="e.g. Clifton beach house, Cape Town" />
+              </div>
+
+              <div className="glass-sm p-3 mb-5 text-center">
+                <span className="text-[10px] text-[#6E7275]">💡 We use this data to curate giveaway prizes our members actually want.</span>
+              </div>
+
+              <div className="flex gap-2.5">
                 <button onClick={() => setStep(1)} className="btn btn-ghost flex-1 py-3">← BACK</button>
                 <button onClick={() => setStep(3)} className="btn btn-red flex-[2] py-3 text-sm">CONTINUE →</button>
               </div>
             </>
           )}
 
+          {/* STEP 3: Confirm */}
           {step === 3 && (
             <>
-              <h3 className="text-[15px] font-bold mb-4">Confirm & Pay</h3>
+              <h3 className="text-[15px] font-bold mb-4">Confirm Registration</h3>
               <div className="glass-sm p-4 mb-4">
-                {[['Name', `${data.firstName} ${data.lastName}`], ['Email', data.email]].map(([k,v]) => (
-                  <div key={k} className="flex items-center justify-between py-1 text-[13px]">
-                    <span className="text-[#58586a]">{k}</span>
+                {[['Name', `${data.firstName} ${data.lastName}`], ['Email', data.email], ['Phone', data.phone]].map(([k,v]) => (
+                  <div key={k} className="flex items-center justify-between py-1.5 text-[13px] border-b border-[rgba(255,255,255,.06)] last:border-0">
+                    <span className="text-[#6E7275]">{k}</span>
                     <span className="font-medium">{v}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between py-1 text-[13px]">
-                  <span className="text-[#58586a]">Tier</span>
-                  <TierBadge tier={data.tier} />
-                </div>
-                <div className="h-px bg-glass-border my-3" />
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">Monthly</span>
-                  <span className="font-heading text-[28px] text-ci-gold-light tracking-wide">R{t.price}</span>
-                </div>
+                {data.dreamCar && (
+                  <div className="flex items-center justify-between py-1.5 text-[13px] border-b border-[rgba(255,255,255,.06)]">
+                    <span className="text-[#6E7275]">Dream Car</span>
+                    <span className="text-[12px]">🏎️ {data.dreamCar}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Free entry highlight */}
+              <div className="bg-[rgba(34,204,110,.06)] border border-[rgba(34,204,110,.15)] rounded-xl p-4 mb-4 text-center">
+                <div className="text-sm font-bold text-ci-green mb-1">🎟️ 1 Free Draw Entry</div>
+                <p className="text-[11px] text-[#6E7275]">
+                  By registering you&apos;re automatically entered into every monthly prize draw. No payment required.
+                </p>
+              </div>
+
+              <div className="glass-sm p-3 mb-4 text-center">
+                <p className="text-[11px] text-[#6E7275]">
+                  🔒 Want GPS tracking, crew chat, drives & bonus entries?{' '}
+                  <span className="text-white font-semibold">Subscribe after registration.</span>
+                </p>
               </div>
 
               <label className="flex gap-2 cursor-pointer mb-2">
-                <input type="checkbox" id="terms" className="mt-0.5 accent-ci-red" />
-                <span className="text-xs text-[#58586a] leading-relaxed">I agree to the Terms and Privacy Policy.</span>
+                <input type="checkbox" className="mt-0.5 accent-[#E03455]" />
+                <span className="text-xs text-[#6E7275] leading-relaxed">I agree to the <Link href="/terms" className="text-[#E03455] underline">Terms and Competition Rules</Link>.</span>
               </label>
-              <label className="flex gap-2 cursor-pointer mb-4">
-                <input type="checkbox" id="rules" className="mt-0.5 accent-ci-red" />
-                <span className="text-xs text-[#58586a] leading-relaxed">I acknowledge the CPA Section 36 competition rules.</span>
+              <label className="flex gap-2 cursor-pointer mb-5">
+                <input type="checkbox" className="mt-0.5 accent-[#E03455]" />
+                <span className="text-xs text-[#6E7275] leading-relaxed">I acknowledge the CPA Section 36 promotional competition rules.</span>
               </label>
-
-              <div className="bg-gradient-to-br from-[#003087] to-[#009cde] rounded-xl p-3.5 mb-4 text-center text-white">
-                <div className="text-[9px] tracking-[2px] opacity-70">SECURE PAYMENT VIA</div>
-                <div className="text-xl font-bold my-0.5">Pay<span className="font-light">fast</span></div>
-                <div className="text-[10px] opacity-50">PCI DSS Level 1 · Tokenized · ZAR</div>
-              </div>
 
               <div className="flex gap-2.5">
                 <button onClick={() => setStep(2)} className="btn btn-ghost flex-1 py-3">← BACK</button>
                 <button onClick={submit} disabled={loading}
-                  className="btn btn-gold flex-[2] py-3 text-sm tracking-[2px]">
-                  {loading ? 'Processing...' : `SUBSCRIBE R${t.price}/MO`}
+                  className="btn btn-red flex-[2] py-3.5 text-sm tracking-[2px]">
+                  {loading ? 'Creating account...' : 'REGISTER & ENTER DRAW'}
                 </button>
               </div>
             </>
           )}
         </div>
 
-        <p className="text-center mt-4 text-[13px] text-[#58586a]">
-          Already a member? <Link href="/login" className="text-ci-red font-semibold">Log in</Link>
+        <p className="text-center mt-4 text-[13px] text-[#6E7275]">
+          Already registered? <Link href="/login" className="text-[#E03455] font-semibold">Log in</Link>
         </p>
       </div>
     </section>
