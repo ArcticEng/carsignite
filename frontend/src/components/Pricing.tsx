@@ -13,20 +13,6 @@ export function Pricing() {
           </p>
         </div>
 
-        {/* No Purchase Necessary */}
-        <div className="bg-[rgba(34,204,110,.06)] border border-[rgba(34,204,110,.12)] rounded-xl p-4 mb-8 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-bold text-ci-green mb-0.5">🎉 No Purchase Necessary</div>
-            <p className="text-[12px] text-[#6E7275]">
-              <Link href="/signup" className="text-ci-green font-semibold underline">Register for free</Link> and get 1 entry into every monthly draw. Paid memberships give bonus entries + full platform access.
-              <Link href="/terms" className="text-[#E03455] underline ml-1">Full rules</Link>.
-            </p>
-          </div>
-          <Link href="/signup" className="btn btn-ghost border-ci-green/30 text-ci-green px-5 py-2.5 text-[11px] shrink-0">
-            REGISTER FREE → 1 ENTRY
-          </Link>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
           {Object.values(PAID_TIERS).map(t => (
             <div key={t.id} className={`relative rounded-[18px] transition-transform duration-400 hover:-translate-y-2 ${t.popular ? 'p-[2px] shadow-glow-strong' : ''}`}
