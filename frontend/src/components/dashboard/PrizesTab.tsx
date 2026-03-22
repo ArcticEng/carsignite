@@ -21,12 +21,12 @@ export function PrizesTab() {
   return (
     <>
       {/* Countdown */}
-      <div className="glass-card p-6 text-center mb-6 animate-border-glow" style={{ borderColor: 'rgba(230,57,70,.15)' }}>
+      <div className="glass-card p-6 text-center mb-6 animate-border-glow" style={{ borderColor: 'rgba(224,52,85,.15)' }}>
         <div className="text-[10px] font-bold tracking-[3px] text-ci-red-light uppercase mb-2">🔥 NEXT DRAW IN</div>
         <div className="font-heading text-[clamp(40px,8vw,64px)] text-ci-gold-light tracking-[4px]" style={{ textShadow: '0 0 30px rgba(240,192,64,.2)' }}>
           {cd.days} DAYS {cd.hours} HRS
         </div>
-        <p className="text-[13px] text-[#58586a] mt-1.5">Don&apos;t miss your chance to win big. Entries are automatic with your subscription.</p>
+        <p className="text-[13px] text-[#6E7275] mt-1.5">Don&apos;t miss your chance to win big. Entries are automatic with your subscription.</p>
       </div>
 
       {/* Current prizes */}
@@ -39,9 +39,9 @@ export function PrizesTab() {
           const img = prizeImg(c.name || t.prize || 'luxury', c.image);
 
           return (
-            <div key={p.tier} className="glass-card overflow-hidden" style={isMy ? { borderColor: 'rgba(230,57,70,.2)', boxShadow: '0 0 30px rgba(230,57,70,.08)' } : {}}>
+            <div key={p.tier} className="glass-card overflow-hidden" style={isMy ? { borderColor: 'rgba(224,52,85,.2)', boxShadow: '0 0 30px rgba(224,52,85,.08)' } : {}}>
               <div className="h-[180px] relative" style={{ background: `url('${img}') center/cover` }}>
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(3,3,5,.9) 0%, transparent 60%)' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(30,30,30,.9) 0%, transparent 60%)' }} />
                 <div className="absolute top-3 left-3"><TierBadge tier={p.tier} /></div>
                 {isMy && <div className="absolute top-3 right-3 bg-ci-red text-white px-2.5 py-1 rounded-md text-[9px] font-bold tracking-wide">YOUR TIER</div>}
                 <div className="absolute bottom-3 left-3.5 right-3.5">
@@ -49,9 +49,9 @@ export function PrizesTab() {
                 </div>
               </div>
               <div className="p-4">
-                <p className="text-[13px] text-[#9898a8] leading-relaxed mb-2">{c.desc || `Premium giveaway for ${t.name} members`}</p>
+                <p className="text-[13px] text-[#E7E5E6] leading-relaxed mb-2">{c.desc || `Premium giveaway for ${t.name} members`}</p>
                 {c.value > 0 && <div className="font-heading text-xl text-ci-gold-light tracking-wide">R{Number(c.value).toLocaleString()}</div>}
-                <div className="text-[11px] text-[#58586a] mt-1.5">{t.freq} draw · {t.entries}× entries</div>
+                <div className="text-[11px] text-[#6E7275] mt-1.5">{t.freq} draw · {t.entries}× entries</div>
               </div>
             </div>
           );
@@ -71,15 +71,15 @@ export function PrizesTab() {
               return (
                 <div key={p.tier} className="glass-card overflow-hidden opacity-85">
                   <div className="h-[160px] relative" style={{ background: `url('${img}') center/cover` }}>
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(3,3,5,.9) 0%, transparent 60%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(30,30,30,.9) 0%, transparent 60%)' }} />
                     <div className="absolute top-3 left-3"><TierBadge tier={p.tier} /></div>
-                    <div className="absolute top-3 right-3 glass-sm text-[#58586a] px-2.5 py-1 rounded-md text-[9px] font-bold tracking-wide">UPCOMING</div>
+                    <div className="absolute top-3 right-3 glass-sm text-[#6E7275] px-2.5 py-1 rounded-md text-[9px] font-bold tracking-wide">UPCOMING</div>
                     <div className="absolute bottom-3 left-3.5"><div className="font-heading text-xl tracking-wider">{u.name}</div></div>
                   </div>
                   <div className="p-3.5">
-                    <p className="text-xs text-[#58586a] leading-relaxed">{u.desc || 'Coming soon'}</p>
+                    <p className="text-xs text-[#6E7275] leading-relaxed">{u.desc || 'Coming soon'}</p>
                     {u.value > 0 && <div className="text-sm text-ci-gold-light font-bold mt-1">R{Number(u.value).toLocaleString()}</div>}
-                    {p.drawDateHint && <div className="text-[11px] text-[#58586a] mt-1">📅 {p.drawDateHint}</div>}
+                    {p.drawDateHint && <div className="text-[11px] text-[#6E7275] mt-1">📅 {p.drawDateHint}</div>}
                   </div>
                 </div>
               );
@@ -87,7 +87,7 @@ export function PrizesTab() {
           </div>
         </>
       ) : (
-        <div className="glass-sm p-5 text-center text-[11px] text-[#58586a]">Upcoming prizes will be announced soon. Stay tuned!</div>
+        <div className="glass-sm p-5 text-center text-[11px] text-[#6E7275]">Upcoming prizes will be announced soon. Stay tuned!</div>
       )}
     </>
   );

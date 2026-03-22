@@ -40,11 +40,11 @@ export function ProfileTab() {
                     <span className="text-lg">{isWin ? '🏆' : '🔔'}</span>
                     <div>
                       <div className={`font-semibold text-[13px] ${isWin ? 'text-ci-gold-light' : ''}`}>{n.title}</div>
-                      {n.body && <div className="text-[11px] text-[#58586a] mt-0.5">{n.body}</div>}
+                      {n.body && <div className="text-[11px] text-[#6E7275] mt-0.5">{n.body}</div>}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[9px] text-[#58586a]">{new Date(n.created_at).toLocaleDateString()}</div>
+                    <div className="text-[9px] text-[#6E7275]">{new Date(n.created_at).toLocaleDateString()}</div>
                     {!n.read && <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(34,204,110,.08)] text-ci-green mt-0.5 inline-block">NEW</span>}
                   </div>
                 </div>
@@ -60,7 +60,7 @@ export function ProfileTab() {
         <div className="glass-sm p-3.5">
           {fields.map(([label, value]) => (
             <div key={label} className="flex items-center justify-between py-1.5 text-[13px] border-b border-glass-border last:border-0">
-              <span className="text-[#58586a]">{label}</span>
+              <span className="text-[#6E7275]">{label}</span>
               <span className={`font-medium ${label === 'Status' ? 'text-ci-green' : ''}`}>{value}</span>
             </div>
           ))}

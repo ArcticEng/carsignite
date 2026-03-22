@@ -53,10 +53,10 @@ export function Nav() {
             <Link href="/dashboard" className={`${linkClass('/dashboard')} max-sm:w-full max-sm:py-3.5 max-sm:text-sm`}>Dashboard</Link>
             {isAdmin && <Link href="/admin" className={`${linkClass('/admin')} max-sm:w-full max-sm:py-3.5 max-sm:text-sm`}>Admin</Link>}
             <div className="flex items-center gap-2 max-sm:mt-4">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold text-white ${isAdmin ? 'bg-gradient-to-br from-ci-red to-ci-red-dark ring-2 ring-ci-red/30' : 'bg-gradient-to-br from-ci-red to-ci-red-dark'} shadow-[0_2px_12px_rgba(230,57,70,.3)]`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold text-white ${isAdmin ? 'bg-gradient-to-br from-ci-red to-ci-red-dark ring-2 ring-ci-red/30' : 'bg-gradient-to-br from-ci-red to-ci-red-dark'} shadow-[0_2px_12px_rgba(224,52,85,.3)]`}>
                 {member.first_name?.[0]}{member.last_name?.[0]}
               </div>
-              <button onClick={logout} className="text-[11px] text-[#58586a] hover:text-[#9898a8]">Log out</button>
+              <button onClick={logout} className="text-[11px] text-[#6E7275] hover:text-[#E7E5E6]">Log out</button>
             </div>
           </>
         ) : (

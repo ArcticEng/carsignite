@@ -53,8 +53,8 @@ export function ChatTab() {
     <div className="glass-card p-7">
       <div className="text-center py-10">
         <div className="text-4xl opacity-30 mb-3">💬</div>
-        <div className="font-semibold text-[#9898a8]">No Group Chats Yet</div>
-        <p className="text-[13px] text-[#58586a] mt-1">Create or join a Drive Group first (Drives tab).</p>
+        <div className="font-semibold text-[#E7E5E6]">No Group Chats Yet</div>
+        <p className="text-[13px] text-[#6E7275] mt-1">Create or join a Drive Group first (Drives tab).</p>
       </div>
     </div>
   );
@@ -62,15 +62,15 @@ export function ChatTab() {
   if (!activeGroup) return (
     <div className="glass-card p-5">
       <h3 className="font-bold text-[15px] mb-4">💬 Group Chats</h3>
-      <p className="text-[13px] text-[#58586a] mb-4">Select a group to open its private chat.</p>
+      <p className="text-[13px] text-[#6E7275] mb-4">Select a group to open its private chat.</p>
       {groups.map(g => (
         <button key={g.id} onClick={() => loadMessages(g.id)}
-          className="w-full glass-sm flex items-center justify-between p-4 mb-2 text-left hover:border-[rgba(230,57,70,.2)] transition-all">
+          className="w-full glass-sm flex items-center justify-between p-4 mb-2 text-left hover:border-[rgba(224,52,85,.2)] transition-all">
           <div className="flex items-center gap-2.5">
             <span className="text-xl">{g.emoji || '💬'}</span>
             <div>
               <div className="font-bold text-sm">{g.name}</div>
-              <div className="text-[11px] text-[#58586a]">{g.member_count} members · Code: <code className="text-ci-gold-light">{g.invite_code}</code></div>
+              <div className="text-[11px] text-[#6E7275]">{g.member_count} members · Code: <code className="text-ci-gold-light">{g.invite_code}</code></div>
             </div>
           </div>
           <span className="text-ci-red text-[13px]">Open →</span>
@@ -93,22 +93,22 @@ export function ChatTab() {
       {/* Messages */}
       <div ref={chatRef} className="flex-1 overflow-auto p-3.5 flex flex-col gap-2.5">
         {messages.length === 0 ? (
-          <div className="text-center py-10 text-[#58586a] text-sm">No messages yet. Say something!</div>
+          <div className="text-center py-10 text-[#6E7275] text-sm">No messages yet. Say something!</div>
         ) : messages.map(m => {
           const isMe = m.member_id === member?.id;
           return (
             <div key={m.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${isMe ? 'bg-gradient-to-br from-ci-red to-ci-red-dark shadow-[0_0_12px_rgba(230,57,70,.15)]' : 'bg-bg-3 border border-glass-border'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${isMe ? 'bg-gradient-to-br from-ci-red to-ci-red-dark shadow-[0_0_12px_rgba(224,52,85,.15)]' : 'bg-bg-3 border border-glass-border'}`}>
                 {m.first_name?.[0]}{m.last_name?.[0]}
               </div>
               <div className="max-w-[78%]">
                 <div className={`flex gap-1.5 mb-0.5 text-[11px] ${isMe ? 'justify-end' : ''}`}>
                   <span className="font-semibold">{isMe ? 'You' : `${m.first_name} ${m.last_name?.[0]}.`}</span>
                   <TierBadge tier={m.tier} small />
-                  <span className="text-[9px] text-[#58586a]">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="text-[9px] text-[#6E7275]">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   {isMe && <button onClick={() => delMsg(m.id)} className="text-[9px] text-ci-red ml-1">🗑</button>}
                 </div>
-                <div className={`px-3.5 py-2.5 rounded-xl text-[13px] leading-relaxed ${isMe ? 'bg-[rgba(230,57,70,.08)] border border-[rgba(230,57,70,.1)] rounded-tr-sm' : 'bg-glass-light border border-glass-border rounded-tl-sm'}`}>
+                <div className={`px-3.5 py-2.5 rounded-xl text-[13px] leading-relaxed ${isMe ? 'bg-[rgba(224,52,85,.08)] border border-[rgba(224,52,85,.1)] rounded-tr-sm' : 'bg-glass-light border border-glass-border rounded-tl-sm'}`}>
                   {m.content}
                 </div>
               </div>

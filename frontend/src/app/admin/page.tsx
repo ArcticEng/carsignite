@@ -42,13 +42,13 @@ export default function AdminPage() {
         <div className="flex flex-wrap items-center justify-between gap-2.5 mb-2">
           <div>
             <h2 className="font-heading text-[clamp(20px,3vw,26px)] tracking-[3px]">ADMIN DASHBOARD</h2>
-            <span className="bg-[rgba(230,57,70,.1)] text-ci-red-light text-[9px] px-2 py-0.5 border border-[rgba(230,57,70,.15)] rounded font-bold">ADMIN</span>
+            <span className="bg-[rgba(224,52,85,.1)] text-ci-red-light text-[9px] px-2 py-0.5 border border-[rgba(224,52,85,.15)] rounded font-bold">ADMIN</span>
           </div>
         </div>
 
         {a && (
           <>
-            <p className="text-xs text-[#58586a] mb-4">
+            <p className="text-xs text-[#6E7275] mb-4">
               {a.members.total} members · {a.draws.total} draws · R{a.revenue.mrr.toLocaleString()}/mo MRR
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
@@ -61,8 +61,8 @@ export default function AdminPage() {
                 { l: 'Draws', v: a.draws.total, c: 'text-ci-green' },
               ].map(s => (
                 <div key={s.l} className="glass-card p-4 relative overflow-hidden">
-                  <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-[rgba(230,57,70,.04)] blur-[25px]" />
-                  <div className="text-[10px] font-semibold text-[#58586a] tracking-[2px] uppercase mb-1">{s.l}</div>
+                  <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-[rgba(224,52,85,.04)] blur-[25px]" />
+                  <div className="text-[10px] font-semibold text-[#6E7275] tracking-[2px] uppercase mb-1">{s.l}</div>
                   <div className={`font-heading text-3xl tracking-wide ${s.c || ''}`}>{s.v}</div>
                 </div>
               ))}
@@ -70,7 +70,6 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* Tabs */}
         <div className="flex gap-[3px] bg-[rgba(255,255,255,.02)] rounded-xl p-1 border border-glass-border overflow-x-auto mb-4">
           {TABS.map(tb => (
             <button key={tb.id} onClick={() => setTab(tb.id)}
@@ -112,15 +111,15 @@ function MembersTab({ toast }: { toast: any }) {
     const s = (status || '').toLowerCase();
     if (s === 'active') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(34,204,110,.08)] text-ci-green font-bold">ACTIVE</span>;
     if (s === 'pending') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(240,192,64,.1)] text-ci-gold-light font-bold">PENDING</span>;
-    if (s === 'suspended') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(230,57,70,.1)] text-ci-red-light font-bold">SUSPENDED</span>;
-    return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-glass text-[#58586a] font-bold">{(status || 'UNKNOWN').toUpperCase()}</span>;
+    if (s === 'suspended') return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[rgba(224,52,85,.1)] text-ci-red-light font-bold">SUSPENDED</span>;
+    return <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-glass text-[#6E7275] font-bold">{(status || 'UNKNOWN').toUpperCase()}</span>;
   };
 
   return (
     <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto p-1">
         <table className="w-full text-xs">
-          <thead><tr className="text-[9px] text-[#58586a] tracking-[2px] uppercase">
+          <thead><tr className="text-[9px] text-[#6E7275] tracking-[2px] uppercase">
             <th className="p-3 text-left border-b border-glass-border">Name</th>
             <th className="p-3 text-left border-b border-glass-border">Email</th>
             <th className="p-3 text-left border-b border-glass-border">Tier</th>
@@ -130,11 +129,11 @@ function MembersTab({ toast }: { toast: any }) {
           </tr></thead>
           <tbody>
             {members.map(m => (
-              <tr key={m.id} className="hover:bg-[rgba(230,57,70,.02)]">
+              <tr key={m.id} className="hover:bg-[rgba(224,52,85,.02)]">
                 <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{m.first_name} {m.last_name}</td>
-                <td className="p-3 text-[#58586a] border-b border-[rgba(255,255,255,.03)]">{m.email}</td>
+                <td className="p-3 text-[#6E7275] border-b border-[rgba(255,255,255,.03)]">{m.email}</td>
                 <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={m.tier} small /></td>
-                <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{m.role === 'admin' ? <span className="bg-[rgba(230,57,70,.1)] text-ci-red-light text-[9px] px-1.5 py-0.5 rounded font-bold">ADMIN</span> : 'member'}</td>
+                <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{m.role === 'admin' ? <span className="bg-[rgba(224,52,85,.1)] text-ci-red-light text-[9px] px-1.5 py-0.5 rounded font-bold">ADMIN</span> : 'member'}</td>
                 <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{statusBadge(m.status)}</td>
                 <td className="p-3 border-b border-[rgba(255,255,255,.03)]">
                   <div className="flex items-center gap-1.5">
@@ -145,7 +144,7 @@ function MembersTab({ toast }: { toast: any }) {
                       <button onClick={() => suspend(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(240,192,64,.08)] text-ci-gold-light font-bold hover:bg-[rgba(240,192,64,.12)] transition-all" title="Suspend member">⏸ Suspend</button>
                     )}
                     {m.role !== 'admin' && (
-                      <button onClick={() => del(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(230,57,70,.08)] text-ci-red font-bold hover:bg-[rgba(230,57,70,.12)] transition-all" title="Remove member">✕</button>
+                      <button onClick={() => del(m.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(224,52,85,.08)] text-ci-red font-bold hover:bg-[rgba(224,52,85,.12)] transition-all" title="Remove member">✕</button>
                     )}
                   </div>
                 </td>
@@ -153,7 +152,7 @@ function MembersTab({ toast }: { toast: any }) {
             ))}
           </tbody>
         </table>
-        {members.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No members</div>}
+        {members.length === 0 && <div className="text-center py-10 text-[#6E7275] text-sm">No members</div>}
       </div>
     </div>
   );
@@ -166,14 +165,14 @@ function SubsTab() {
     <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto p-1">
         <table className="w-full text-xs">
-          <thead><tr className="text-[9px] text-[#58586a] tracking-[2px] uppercase">
+          <thead><tr className="text-[9px] text-[#6E7275] tracking-[2px] uppercase">
             <th className="p-3 text-left border-b border-glass-border">Member</th>
             <th className="p-3 text-left border-b border-glass-border">Tier</th>
             <th className="p-3 text-left border-b border-glass-border">Amount</th>
             <th className="p-3 text-left border-b border-glass-border">Status</th>
           </tr></thead>
           <tbody>{subs.map(s => (
-            <tr key={s.id} className="hover:bg-[rgba(230,57,70,.02)]">
+            <tr key={s.id} className="hover:bg-[rgba(224,52,85,.02)]">
               <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{s.first_name} {s.last_name}</td>
               <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={s.tier} small /></td>
               <td className="p-3 text-ci-gold-light font-bold border-b border-[rgba(255,255,255,.03)]">R{s.amount}/mo</td>
@@ -181,7 +180,7 @@ function SubsTab() {
             </tr>
           ))}</tbody>
         </table>
-        {subs.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No subscriptions</div>}
+        {subs.length === 0 && <div className="text-center py-10 text-[#6E7275] text-sm">No subscriptions</div>}
       </div>
     </div>
   );
@@ -212,7 +211,7 @@ function PrizesConfigTab({ toast }: { toast: any }) {
   return (
     <div className="glass-card p-5">
       <h3 className="font-bold text-[15px] mb-2">🎁 Prize Configuration</h3>
-      <p className="text-xs text-[#58586a] mb-5">Set current and upcoming prizes per tier. Leave image blank for auto.</p>
+      <p className="text-xs text-[#6E7275] mb-5">Set current and upcoming prizes per tier. Leave image blank for auto.</p>
 
       {['ignite', 'apex', 'dynasty'].map(tier => {
         const t = TIERS[tier];
@@ -220,27 +219,27 @@ function PrizesConfigTab({ toast }: { toast: any }) {
         return (
           <div key={tier} className="glass-sm p-4 mb-3">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5"><TierBadge tier={tier} /> <span className="text-xs text-[#58586a]">{t.freq}</span></div>
+              <div className="flex items-center gap-1.5"><TierBadge tier={tier} /> <span className="text-xs text-[#6E7275]">{t.freq}</span></div>
               <span className="text-[9px] font-bold tracking-[2px] text-ci-red-light uppercase">CURRENT PRIZE</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Prize Name *</label><input id={`pz-${tier}-n`} defaultValue={p.prize_name || t.prize} className={inp} /></div>
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Description</label><input id={`pz-${tier}-d`} defaultValue={p.prize_desc || ''} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Prize Name *</label><input id={`pz-${tier}-n`} defaultValue={p.prize_name || t.prize} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Description</label><input id={`pz-${tier}-d`} defaultValue={p.prize_desc || ''} className={inp} /></div>
             </div>
             <div className="grid grid-cols-[auto_1fr] gap-2.5 mb-3">
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-v`} defaultValue={p.prize_value || 0} className={`${inp} w-[120px]`} /></div>
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-img`} defaultValue={p.prize_image_url || ''} placeholder="https://..." className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-v`} defaultValue={p.prize_value || 0} className={`${inp} w-[120px]`} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-img`} defaultValue={p.prize_image_url || ''} placeholder="https://..." className={inp} /></div>
             </div>
             <div className="h-px bg-glass-border my-3" />
             <div className="mb-2"><span className="text-[9px] font-bold tracking-[2px] text-ci-gold-light uppercase">UPCOMING PRIZE (next draw)</span></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Upcoming Name</label><input id={`pz-${tier}-un`} defaultValue={p.upcoming_name || ''} placeholder="e.g. BMW M4" className={inp} /></div>
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Upcoming Desc</label><input id={`pz-${tier}-ud`} defaultValue={p.upcoming_desc || ''} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Upcoming Name</label><input id={`pz-${tier}-un`} defaultValue={p.upcoming_name || ''} placeholder="e.g. BMW M4" className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Upcoming Desc</label><input id={`pz-${tier}-ud`} defaultValue={p.upcoming_desc || ''} className={inp} /></div>
             </div>
             <div className="grid grid-cols-[auto_1fr_auto] gap-2.5 mb-3">
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-uv`} defaultValue={p.upcoming_value || 0} className={`${inp} w-[120px]`} /></div>
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-uimg`} defaultValue={p.upcoming_image_url || ''} className={inp} /></div>
-              <div><label className="block text-[10px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Draw Date</label><input id={`pz-${tier}-dd`} defaultValue={p.draw_date_hint || ''} placeholder="April 2026" className={`${inp} w-[130px]`} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Value (R)</label><input type="number" id={`pz-${tier}-uv`} defaultValue={p.upcoming_value || 0} className={`${inp} w-[120px]`} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Image URL</label><input id={`pz-${tier}-uimg`} defaultValue={p.upcoming_image_url || ''} className={inp} /></div>
+              <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Draw Date</label><input id={`pz-${tier}-dd`} defaultValue={p.draw_date_hint || ''} placeholder="April 2026" className={`${inp} w-[130px]`} /></div>
             </div>
             <button onClick={() => save(tier)} className="btn btn-gold px-5 py-2 text-[11px]">Save {t.name} Prizes</button>
           </div>
@@ -298,18 +297,18 @@ function DrawsTab({ toast }: { toast: any }) {
         ) : result ? (
           <div className="animate-fade-up"><div className="font-heading text-2xl text-ci-gold-light tracking-wider">{result}</div></div>
         ) : (
-          <span className="text-[#58586a] text-[13px]">Select tier above</span>
+          <span className="text-[#6E7275] text-[13px]">Select tier above</span>
         )}
       </div>
 
-      <div className="text-[11px] font-bold tracking-[3px] text-[#58586a] uppercase mb-3">History ({draws.length})</div>
+      <div className="text-[11px] font-bold tracking-[3px] text-[#6E7275] uppercase mb-3">History ({draws.length})</div>
       {draws.map(d => (
         <div key={d.id} className="glass-sm flex flex-wrap items-center justify-between p-3 mb-1.5 gap-1.5">
           <div className="flex items-center gap-2">
             <span>🏆</span>
             <div>
               <div className="font-bold text-xs">{d.winner_name}</div>
-              <div className="text-[10px] text-[#58586a]">{d.prize_name} · {new Date(d.draw_date).toLocaleDateString()}</div>
+              <div className="text-[10px] text-[#6E7275]">{d.prize_name} · {new Date(d.draw_date).toLocaleDateString()}</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -318,7 +317,7 @@ function DrawsTab({ toast }: { toast: any }) {
           </div>
         </div>
       ))}
-      {draws.length === 0 && <div className="text-center py-4 text-[#58586a] text-xs">No draws</div>}
+      {draws.length === 0 && <div className="text-center py-4 text-[#6E7275] text-xs">No draws</div>}
     </div>
   );
 }
@@ -369,7 +368,6 @@ function InsightsTab() {
         <TopList title="Top Dream Houses" icon="🏠" items={data.topDreamHouses || []} />
       </div>
 
-      {/* Full member preferences table */}
       <div className="glass-card overflow-hidden">
         <div className="p-4 border-b border-[rgba(255,255,255,.06)]">
           <h4 className="font-bold text-sm">All Member Preferences</h4>
@@ -413,17 +411,17 @@ function AuditTab() {
 
   return (
     <div className="glass-card p-4">
-      <div className="text-[11px] font-bold tracking-[3px] text-[#58586a] uppercase mb-3">Audit Trail ({total})</div>
+      <div className="text-[11px] font-bold tracking-[3px] text-[#6E7275] uppercase mb-3">Audit Trail ({total})</div>
       {logs.slice(0, 50).map((l, i) => (
         <div key={i} className="flex flex-wrap items-center justify-between py-1.5 border-b border-glass-border gap-1 text-[11px]">
           <div>
             <span className="font-bold text-ci-gold-light font-mono text-[10px]">{l.action}</span>
-            <span className="text-[#58586a] ml-1.5 font-mono text-[9px]">{(l.details || '').slice(0, 80)}</span>
+            <span className="text-[#6E7275] ml-1.5 font-mono text-[9px]">{(l.details || '').slice(0, 80)}</span>
           </div>
-          <span className="text-[9px] text-[#58586a]">{new Date(l.created_at).toLocaleString()}</span>
+          <span className="text-[9px] text-[#6E7275]">{new Date(l.created_at).toLocaleString()}</span>
         </div>
       ))}
-      {logs.length === 0 && <div className="text-center py-10 text-[#58586a] text-sm">No logs</div>}
+      {logs.length === 0 && <div className="text-center py-10 text-[#6E7275] text-sm">No logs</div>}
     </div>
   );
 }

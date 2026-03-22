@@ -67,21 +67,21 @@ export function DrivesTab() {
         {showCreate && (
           <div className="glass-sm p-4 mb-3">
             <div className="mb-2">
-              <label className="block text-[11px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Group Name *</label>
+              <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Group Name *</label>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Cape Town Breakfast Crew"
                 className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" />
             </div>
             <div className="mb-2">
-              <label className="block text-[11px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Description</label>
+              <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Description</label>
               <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Saturday morning runs"
                 className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm" />
             </div>
             <div className="mb-3">
-              <label className="block text-[11px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Emoji</label>
+              <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Emoji</label>
               <div className="flex gap-1.5">
                 {emojis.map(e => (
                   <button key={e} onClick={() => setNewEmoji(e)}
-                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${newEmoji === e ? 'bg-[rgba(230,57,70,.15)] border border-ci-red' : 'bg-glass border border-glass-border'}`}>
+                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${newEmoji === e ? 'bg-[rgba(224,52,85,.15)] border border-ci-red' : 'bg-glass border border-glass-border'}`}>
                     {e}
                   </button>
                 ))}
@@ -96,7 +96,7 @@ export function DrivesTab() {
 
         {showJoin && (
           <div className="glass-sm p-4 mb-3">
-            <label className="block text-[11px] font-semibold text-[#58586a] mb-1 uppercase tracking-wider">Invite Code</label>
+            <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Invite Code</label>
             <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="AB3XY9" className="w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm uppercase mb-3" />
             <div className="flex gap-2">
               <button onClick={joinGroup} className="btn btn-red px-5 py-2 text-[11px]">Join</button>
@@ -106,15 +106,15 @@ export function DrivesTab() {
         )}
 
         {groups.length === 0 ? (
-          <div className="text-center py-4 text-[#58586a] text-[13px]">No groups yet</div>
+          <div className="text-center py-4 text-[#6E7275] text-[13px]">No groups yet</div>
         ) : groups.map(g => (
           <div key={g.id} className="glass-sm flex items-center justify-between p-3 mb-2">
             <div className="flex items-center gap-2.5">
               <span className="text-[22px]">{g.emoji || '🏎️'}</span>
               <div>
                 <div className="font-bold text-sm">{g.name}</div>
-                {g.description && <div className="text-[11px] text-[#9898a8] mt-0.5">{g.description}</div>}
-                <div className="text-[10px] text-[#58586a] mt-0.5">{g.member_count} members · Code: <code className="text-ci-gold-light">{g.invite_code}</code></div>
+                {g.description && <div className="text-[11px] text-[#E7E5E6] mt-0.5">{g.description}</div>}
+                <div className="text-[10px] text-[#6E7275] mt-0.5">{g.member_count} members · Code: <code className="text-ci-gold-light">{g.invite_code}</code></div>
               </div>
             </div>
           </div>
@@ -130,11 +130,11 @@ export function DrivesTab() {
               <div>
                 <div className="font-bold text-[15px]">{d.name}</div>
                 <div className="flex flex-wrap gap-3 mt-1.5">
-                  <span className="text-xs text-[#58586a]">📅 {d.date}</span>
-                  <span className="text-xs text-[#58586a]">🏎️ {d.registration_count || 0}/{d.max_cars}</span>
-                  <span className="text-xs text-[#58586a]">📏 {d.distance || '—'}</span>
+                  <span className="text-xs text-[#6E7275]">📅 {d.date}</span>
+                  <span className="text-xs text-[#6E7275]">🏎️ {d.registration_count || 0}/{d.max_cars}</span>
+                  <span className="text-xs text-[#6E7275]">📏 {d.distance || '—'}</span>
                 </div>
-                {d.description && <p className="text-xs text-[#58586a] mt-1.5 leading-relaxed">{d.description}</p>}
+                {d.description && <p className="text-xs text-[#6E7275] mt-1.5 leading-relaxed">{d.description}</p>}
               </div>
               {d.is_registered ? (
                 <span className="text-[9px] font-mono px-3 py-2 rounded bg-[rgba(34,204,110,.08)] text-ci-green font-bold">✓ Registered</span>
@@ -144,7 +144,7 @@ export function DrivesTab() {
             </div>
           </div>
         ))}
-        {drives.length === 0 && <div className="text-center py-6 text-[#58586a] text-sm">No upcoming drives</div>}
+        {drives.length === 0 && <div className="text-center py-6 text-[#6E7275] text-sm">No upcoming drives</div>}
       </div>
     </>
   );
