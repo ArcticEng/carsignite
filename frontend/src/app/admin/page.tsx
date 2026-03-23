@@ -11,6 +11,7 @@ const TABS = [
   { id: 'subs', label: 'Subs', icon: '💳' },
   { id: 'prizes', label: 'Prizes', icon: '🎁' },
   { id: 'insights', label: 'Insights', icon: '🎯' },
+  { id: 'promoters', label: 'Promoters', icon: '📣' },
   { id: 'draws', label: 'Draws', icon: '🎰' },
   { id: 'audit', label: 'Audit', icon: '📋' },
 ];
@@ -83,6 +84,7 @@ export default function AdminPage() {
         {tab === 'subs' && <SubsTab />}
         {tab === 'prizes' && <PrizesConfigTab toast={toast} />}
         {tab === 'insights' && <InsightsTab />}
+        {tab === 'promoters' && <PromotersTab toast={toast} />}
         {tab === 'draws' && <DrawsTab toast={toast} />}
         {tab === 'audit' && <AuditTab />}
       </div>
@@ -399,6 +401,152 @@ function InsightsTab() {
         </div>
       </div>
     </>
+  );
+}
+
+function PromotersTab({ toast }: { toast: any }) {
+  const [promoters, setPromoters] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [viewReferrals, setViewReferrals] = useState<{ promoter: any; referrals: any[] } | null>(null);
+  const [form, setForm] = useState<any>({ discountPct: 10, commissionPct: 5 });
+  const [loading, setLoading] = useState(true);
+
+  const reload = () => api('/admin/promoters').then(r => setPromoters(r.promoters || [])).catch(() => {}).finally(() => setLoading(false));
+  useEffect(() => { reload(); }, []);
+
+  const save = async () => {
+    if (!form.name || !form.code) { toast('Name and code required', 'error'); return; }
+    try {
+      if (form.id) {
+        await api(`/admin/promoters/${form.id}`, { method: 'PUT', body: form });
+        toast('Promoter updated', 'success');
+      } else {
+        await api('/admin/promoters', { method: 'POST', body: form });
+        toast('Promoter created', 'success');
+      }
+      setShowForm(false); setForm({ discountPct: 10, commissionPct: 5 }); reload();
+    } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const del = async (id: string) => {
+    if (!confirm('Delete this promoter?')) return;
+    try { await api(`/admin/promoters/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); reload(); } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const viewRefs = async (p: any) => {
+    try {
+      const r = await api(`/admin/promoters/${p.id}/referrals`);
+      setViewReferrals({ promoter: p, referrals: r.referrals || [] });
+    } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const inp = "w-full px-3 py-2.5 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red outline-none";
+
+  if (loading) return <div className="glass-card p-10 text-center"><div className="w-8 h-8 border-2 border-glass-border border-t-ci-red rounded-full animate-spin mx-auto" /></div>;
+
+  // View referrals modal
+  if (viewReferrals) return (
+    <div className="glass-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-[15px]">📣 {viewReferrals.promoter.name} — Referrals</h3>
+          <p className="text-xs text-[#6E7275]">Code: <code className="text-ci-gold-light">{viewReferrals.promoter.code}</code> · {viewReferrals.referrals.length} referrals</p>
+        </div>
+        <button onClick={() => setViewReferrals(null)} className="btn btn-ghost px-4 py-2 text-[11px]">← Back</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead><tr className="text-[9px] text-[#6E7275] tracking-[2px] uppercase">
+            <th className="p-3 text-left border-b border-glass-border">Member</th>
+            <th className="p-3 text-left border-b border-glass-border">Email</th>
+            <th className="p-3 text-left border-b border-glass-border">Tier</th>
+            <th className="p-3 text-left border-b border-glass-border">Discount</th>
+            <th className="p-3 text-left border-b border-glass-border">Converted</th>
+            <th className="p-3 text-left border-b border-glass-border">Date</th>
+          </tr></thead>
+          <tbody>{viewReferrals.referrals.map((r: any) => (
+            <tr key={r.id}>
+              <td className="p-3 font-semibold border-b border-[rgba(255,255,255,.03)]">{r.first_name} {r.last_name}</td>
+              <td className="p-3 text-[#6E7275] border-b border-[rgba(255,255,255,.03)]">{r.email}</td>
+              <td className="p-3 border-b border-[rgba(255,255,255,.03)]"><TierBadge tier={r.tier} small /></td>
+              <td className="p-3 text-ci-green border-b border-[rgba(255,255,255,.03)]">{r.discount_pct}%</td>
+              <td className="p-3 border-b border-[rgba(255,255,255,.03)]">{r.converted ? <span className="text-ci-green font-bold">✓ Paid</span> : <span className="text-[#6E7275]">Pending</span>}</td>
+              <td className="p-3 text-[#6E7275] border-b border-[rgba(255,255,255,.03)]">{new Date(r.created_at).toLocaleDateString()}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+        {viewReferrals.referrals.length === 0 && <div className="text-center py-8 text-[#6E7275] text-sm">No referrals yet</div>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="glass-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-[15px]">📣 Promoters / Affiliate Codes</h3>
+          <p className="text-xs text-[#6E7275]">Create discount codes for Instagram promoters. Track referrals and commissions.</p>
+        </div>
+        <button onClick={() => { setForm({ discountPct: 10, commissionPct: 5 }); setShowForm(!showForm); }} className="btn btn-red px-4 py-2 text-[11px]">+ Add Promoter</button>
+      </div>
+
+      {/* Create/Edit form */}
+      {showForm && (
+        <div className="glass-sm p-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Name *</label><input value={form.name||''} onChange={e => setForm({...form, name: e.target.value})} className={inp} placeholder="e.g. @supercar_SA" /></div>
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Instagram Handle</label><input value={form.instagram||''} onChange={e => setForm({...form, instagram: e.target.value})} className={inp} placeholder="@handle" /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Discount Code *</label><input value={form.code||''} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} className={`${inp} uppercase`} placeholder="SUPERCAR20" /></div>
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">User Discount %</label><input type="number" value={form.discountPct||10} onChange={e => setForm({...form, discountPct: parseFloat(e.target.value)})} className={inp} /></div>
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Commission %</label><input type="number" value={form.commissionPct||5} onChange={e => setForm({...form, commissionPct: parseFloat(e.target.value)})} className={inp} /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Email</label><input value={form.email||''} onChange={e => setForm({...form, email: e.target.value})} className={inp} /></div>
+            <div><label className="block text-[10px] font-semibold text-[#6E7275] mb-1 uppercase tracking-wider">Phone</label><input value={form.phone||''} onChange={e => setForm({...form, phone: e.target.value})} className={inp} /></div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} className="btn btn-gold px-5 py-2 text-[11px]">{form.id ? 'Update' : 'Create'} Promoter</button>
+            <button onClick={() => setShowForm(false)} className="btn btn-ghost px-4 py-2 text-[11px]">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Promoter list */}
+      {promoters.length === 0 ? (
+        <div className="text-center py-10 text-[#6E7275] text-sm">No promoters yet. Click "+ Add Promoter" to create one.</div>
+      ) : (
+        <div className="space-y-2">
+          {promoters.map(p => (
+            <div key={p.id} className="glass-sm p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-sm">{p.name}</span>
+                  {p.instagram && <span className="text-[11px] text-[#6E7275]">@{p.instagram}</span>}
+                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold ${p.status === 'active' ? 'bg-[rgba(34,204,110,.08)] text-ci-green' : 'bg-[rgba(224,52,85,.08)] text-ci-red'}`}>{p.status?.toUpperCase()}</span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-[11px] text-[#6E7275]">
+                  <span>Code: <code className="text-ci-gold-light font-bold">{p.code}</code></span>
+                  <span>Discount: <span className="text-ci-green font-bold">{p.discount_pct}%</span></span>
+                  <span>Commission: <span className="text-white font-bold">{p.commission_pct}%</span></span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-center">
+                <div><div className="font-heading text-xl">{p.total_referrals}</div><div className="text-[9px] text-[#6E7275] uppercase">Referrals</div></div>
+                <div><div className="font-heading text-xl text-ci-gold-light">R{(p.total_revenue || 0).toLocaleString()}</div><div className="text-[9px] text-[#6E7275] uppercase">Revenue</div></div>
+                <div><div className="font-heading text-xl text-ci-green">R{(p.total_commission || 0).toLocaleString()}</div><div className="text-[9px] text-[#6E7275] uppercase">Owed</div></div>
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => viewRefs(p)} className="text-[10px] px-2 py-1 rounded bg-[rgba(255,255,255,.05)] text-[#E7E5E6] font-bold hover:bg-[rgba(255,255,255,.08)] transition-all">View Referrals</button>
+                <button onClick={() => { setForm({ ...p, discountPct: p.discount_pct, commissionPct: p.commission_pct }); setShowForm(true); }} className="text-[10px] px-2 py-1 rounded bg-[rgba(240,192,64,.08)] text-ci-gold-light font-bold hover:bg-[rgba(240,192,64,.12)] transition-all">Edit</button>
+                <button onClick={() => del(p.id)} className="text-[10px] px-2 py-1 rounded bg-[rgba(224,52,85,.08)] text-ci-red font-bold hover:bg-[rgba(224,52,85,.12)] transition-all">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

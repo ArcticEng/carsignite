@@ -13,7 +13,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 const { Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives: DrivesDB, 
-        Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, TIERS } = require('../db/database');
+        Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals, TIERS } = require('../db/database');
 const { generatePaymentData, verifyITN, processITN } = require('./payfast');
 
 const app = express();
@@ -61,7 +61,7 @@ function generateToken(member) {
 // ═══════════════════════════════════════════
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, idNumber, city, province, tier, currentCar, dreamCar, dreamWatch, dreamHouse } = req.body;
+    const { firstName, lastName, email, phone, password, idNumber, city, province, tier, currentCar, dreamCar, dreamWatch, dreamHouse, promoCode } = req.body;
     
     if (!firstName || !lastName || !email || !phone || !tier) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -73,12 +73,34 @@ app.post('/api/auth/register', async (req, res) => {
 
     const passwordHash = password ? await bcrypt.hash(password, 10) : null;
     
+    // Validate promo code if provided
+    let promoter = null;
+    if (promoCode) {
+      promoter = Promoters.getByCode(promoCode.trim());
+      // Don't block registration if code is invalid — just ignore it
+    }
+
     // Free tier = immediately active, paid tiers = pending until PayFast confirms
     const isFree = tier === 'free';
-    const member = Members.create({ firstName, lastName, email, phone, passwordHash, idNumber, city, province, tier, currentCar, dreamCar, dreamWatch, dreamHouse, status: isFree ? 'active' : 'pending' });
+    const member = Members.create({
+      firstName, lastName, email, phone, passwordHash, idNumber, city, province, tier,
+      currentCar, dreamCar, dreamWatch, dreamHouse,
+      status: isFree ? 'active' : 'pending',
+      promoCode: promoter ? promoter.code : null,
+      referredBy: promoter ? promoter.id : null,
+    });
     const subscription = isFree
       ? Subscriptions.create({ memberId: member.id, tier, status: 'active' })
       : Subscriptions.create({ memberId: member.id, tier });
+
+    // Record referral if promo code was valid
+    if (promoter) {
+      Referrals.create({
+        memberId: member.id, promoterId: promoter.id,
+        codeUsed: promoter.code, discountPct: promoter.discount_pct, tier,
+      });
+      Audit.log('system', 'referral_created', 'member', member.id, { promoter: promoter.name, code: promoter.code });
+    }
     
     const token = generateToken(member);
     
@@ -425,6 +447,61 @@ app.get('/api/admin/insights', adminAuth, (req, res) => {
     topDreamWatches: sortByCount(dreamWatches).slice(0, 10),
     topDreamHouses: sortByCount(dreamHouses).slice(0, 10),
   });
+});
+
+// ═══════════════════════════════════════════
+// PROMO CODES (public validation + admin CRUD)
+// ═══════════════════════════════════════════
+
+// Public: validate a promo code (used during signup)
+app.get('/api/promo/validate', (req, res) => {
+  const code = (req.query.code || '').trim();
+  if (!code) return res.status(400).json({ valid: false, error: 'No code provided' });
+  const promoter = Promoters.getByCode(code);
+  if (!promoter) return res.json({ valid: false });
+  res.json({
+    valid: true,
+    code: promoter.code,
+    discountPct: promoter.discount_pct,
+    promoterName: promoter.name,
+  });
+});
+
+// Admin: list all promoters
+app.get('/api/admin/promoters', adminAuth, (req, res) => {
+  const promoters = Promoters.getAll();
+  res.json({ promoters });
+});
+
+// Admin: create promoter
+app.post('/api/admin/promoters', adminAuth, (req, res) => {
+  const { name, instagram, email, phone, code, discountPct, commissionPct, notes } = req.body;
+  if (!name || !code) return res.status(400).json({ error: 'Name and code required' });
+  const existing = Promoters.getByCode(code);
+  if (existing) return res.status(409).json({ error: `Code "${code.toUpperCase()}" already exists` });
+  try {
+    const promoter = Promoters.create({ name, instagram, email, phone, code, discountPct, commissionPct, notes });
+    res.status(201).json({ success: true, promoter });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: update promoter
+app.put('/api/admin/promoters/:id', adminAuth, (req, res) => {
+  const promoter = Promoters.update(req.params.id, req.body);
+  if (!promoter) return res.status(404).json({ error: 'Promoter not found' });
+  res.json({ success: true, promoter });
+});
+
+// Admin: delete promoter
+app.delete('/api/admin/promoters/:id', adminAuth, (req, res) => {
+  Promoters.delete(req.params.id);
+  res.json({ success: true });
+});
+
+// Admin: view referrals for a promoter
+app.get('/api/admin/promoters/:id/referrals', adminAuth, (req, res) => {
+  const referrals = Referrals.getByPromoter(req.params.id);
+  res.json({ referrals });
 });
 
 app.post('/api/admin/reset', adminAuth, (req, res) => {

@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 
 const crypto = require('crypto');
-const { Subscriptions, Payments, Members, Audit, TIERS } = require('../db/database');
+const { Subscriptions, Payments, Members, Audit, TIERS, Referrals, Promoters } = require('../db/database');
 
 const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '10000100';
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a';
@@ -85,6 +85,16 @@ function generatePaymentData(member, tier) {
 
   const phone = (member.phone || '').replace(/[^0-9]/g, '');
 
+  // Check for promo code discount
+  let price = tierConfig.price;
+  let discountApplied = 0;
+  const referral = Referrals.getByMember(member.id);
+  if (referral && referral.discount_pct > 0) {
+    discountApplied = referral.discount_pct;
+    price = Math.round(price * (1 - discountApplied / 100) * 100) / 100;
+    console.log(`[PayFast] Promo ${referral.promoter_code} applied: ${discountApplied}% off → R${price}`);
+  }
+
   const data = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
@@ -95,14 +105,14 @@ function generatePaymentData(member, tier) {
     name_last: member.last_name,
     email_address: member.email,
     m_payment_id: `CI${Date.now()}`,
-    amount: tierConfig.price.toFixed(2),
-    item_name: `CarsIgnite ${tierConfig.name} Monthly`,
+    amount: price.toFixed(2),
+    item_name: `CarsIgnite ${tierConfig.name} Monthly${discountApplied ? ` (-${discountApplied}%)` : ''}`,
     item_description: `${tierConfig.name} tier membership`,
     custom_str1: member.id,
     custom_str2: tier,
     subscription_type: '1',
     billing_date: getNextBillingDate(),
-    recurring_amount: tierConfig.price.toFixed(2),
+    recurring_amount: price.toFixed(2),
     frequency: '3',
     cycles: '0',
   };
@@ -183,6 +193,15 @@ async function processITN(body) {
 
     // Update member status AND tier (critical for free → paid upgrades)
     Members.update(memberId, { status: 'active', tier: tier });
+
+    // Mark referral as converted + credit promoter
+    const referral = Referrals.getByMember(memberId);
+    if (referral && !referral.converted) {
+      Referrals.markConverted(memberId);
+      Promoters.incrementReferral(referral.promoter_id, parseFloat(body.amount_gross));
+      console.log(`[PayFast] Referral converted for promoter ${referral.promoter_id}`);
+    }
+
     console.log(`[PayFast] Activated member ${memberId} on tier: ${tier}`);
     return { success: true, action: 'payment_recorded' };
   }

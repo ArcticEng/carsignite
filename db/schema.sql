@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS members (
     dream_car       TEXT,
     dream_watch     TEXT,
     dream_house     TEXT,
+    promo_code      TEXT,
+    referred_by     TEXT REFERENCES promoters(id),
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -237,6 +239,38 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Promoters — Instagram influencer / affiliate referral codes
+CREATE TABLE IF NOT EXISTS promoters (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    instagram       TEXT,
+    email           TEXT,
+    phone           TEXT,
+    code            TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    discount_pct    REAL NOT NULL DEFAULT 10,
+    commission_pct  REAL NOT NULL DEFAULT 5,
+    status          TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused','inactive')),
+    total_referrals INTEGER DEFAULT 0,
+    total_revenue   REAL DEFAULT 0,
+    total_commission REAL DEFAULT 0,
+    notes           TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Referrals — links members to the promoter who referred them
+CREATE TABLE IF NOT EXISTS referrals (
+    id              TEXT PRIMARY KEY,
+    member_id       TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    promoter_id     TEXT NOT NULL REFERENCES promoters(id),
+    code_used       TEXT NOT NULL,
+    discount_pct    REAL NOT NULL,
+    tier_at_signup  TEXT,
+    converted       INTEGER DEFAULT 0,
+    converted_at    DATETIME,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ═══ Indexes for performance ═══
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
 CREATE INDEX IF NOT EXISTS idx_members_tier ON members(tier);
@@ -260,3 +294,6 @@ CREATE INDEX IF NOT EXISTS idx_tracking_member ON tracking_positions(member_id);
 CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_log(actor_id);
 CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
 CREATE INDEX IF NOT EXISTS idx_notifications_member ON notifications(member_id);
+CREATE INDEX IF NOT EXISTS idx_promoters_code ON promoters(code);
+CREATE INDEX IF NOT EXISTS idx_referrals_member ON referrals(member_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_promoter ON referrals(promoter_id);

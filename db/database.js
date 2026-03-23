@@ -41,11 +41,12 @@ const Members = {
     const d = getDb();
     const id = uuid();
     d.prepare(`
-      INSERT INTO members (id, first_name, last_name, email, phone, password_hash, id_number, city, province, tier, role, status, current_car, dream_car, dream_watch, dream_house)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO members (id, first_name, last_name, email, phone, password_hash, id_number, city, province, tier, role, status, current_car, dream_car, dream_watch, dream_house, promo_code, referred_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, data.firstName, data.lastName, data.email.toLowerCase(), data.phone, data.passwordHash || null,
            data.idNumber || null, data.city || null, data.province || 'gauteng', data.tier, data.role || 'member', data.status || 'pending',
-           data.currentCar || null, data.dreamCar || null, data.dreamWatch || null, data.dreamHouse || null);
+           data.currentCar || null, data.dreamCar || null, data.dreamWatch || null, data.dreamHouse || null,
+           data.promoCode || null, data.referredBy || null);
     
     Audit.log('system', 'member_created', 'member', id, { email: data.email, tier: data.tier });
     return this.getById(id);
@@ -640,4 +641,66 @@ const DriveGroups = {
   },
 };
 
-module.exports = { getDb, TIERS, Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives, Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups };
+// ═══════════════════════════════════════════
+// PROMOTERS (Instagram influencer referral codes)
+// ═══════════════════════════════════════════
+const Promoters = {
+  create(data) {
+    const d = getDb();
+    const id = uuid();
+    d.prepare(`INSERT INTO promoters (id, name, instagram, email, phone, code, discount_pct, commission_pct, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, data.name, data.instagram || null, data.email || null, data.phone || null,
+           data.code.toUpperCase(), data.discountPct || 10, data.commissionPct || 5, data.notes || null);
+    Audit.log('system', 'promoter_created', 'promoter', id, { code: data.code, name: data.name });
+    return this.getById(id);
+  },
+  getById(id) { return getDb().prepare('SELECT * FROM promoters WHERE id = ?').get(id); },
+  getByCode(code) { return getDb().prepare('SELECT * FROM promoters WHERE code = ? COLLATE NOCASE AND status = \'active\'').get(code); },
+  getAll() { return getDb().prepare('SELECT * FROM promoters ORDER BY created_at DESC').all(); },
+  update(id, data) {
+    const sets = []; const vals = [];
+    const allowed = ['name','instagram','email','phone','code','discount_pct','commission_pct','status','notes'];
+    for (const [k,v] of Object.entries(data)) {
+      if (allowed.includes(k)) { sets.push(`${k} = ?`); vals.push(k === 'code' ? String(v).toUpperCase() : v); }
+    }
+    if (sets.length === 0) return this.getById(id);
+    sets.push('updated_at = CURRENT_TIMESTAMP');
+    vals.push(id);
+    getDb().prepare(`UPDATE promoters SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+    return this.getById(id);
+  },
+  delete(id) { getDb().prepare('DELETE FROM promoters WHERE id = ?').run(id); },
+  incrementReferral(id, amount) {
+    const p = this.getById(id);
+    if (!p) return;
+    const commission = amount * (p.commission_pct / 100);
+    getDb().prepare('UPDATE promoters SET total_referrals = total_referrals + 1, total_revenue = total_revenue + ?, total_commission = total_commission + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(amount, commission, id);
+  },
+};
+
+// ═══════════════════════════════════════════
+// REFERRALS
+// ═══════════════════════════════════════════
+const Referrals = {
+  create(data) {
+    const d = getDb();
+    const id = uuid();
+    d.prepare(`INSERT INTO referrals (id, member_id, promoter_id, code_used, discount_pct, tier_at_signup)
+      VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(id, data.memberId, data.promoterId, data.codeUsed, data.discountPct, data.tier || 'free');
+    return this.getById(id);
+  },
+  getById(id) { return getDb().prepare('SELECT * FROM referrals WHERE id = ?').get(id); },
+  getByMember(memberId) { return getDb().prepare('SELECT r.*, p.name as promoter_name, p.code as promoter_code FROM referrals r JOIN promoters p ON r.promoter_id = p.id WHERE r.member_id = ?').get(memberId); },
+  getByPromoter(promoterId) {
+    return getDb().prepare(`SELECT r.*, m.first_name, m.last_name, m.email, m.tier, m.status
+      FROM referrals r JOIN members m ON r.member_id = m.id WHERE r.promoter_id = ? ORDER BY r.created_at DESC`).all(promoterId);
+  },
+  markConverted(memberId) {
+    getDb().prepare('UPDATE referrals SET converted = 1, converted_at = CURRENT_TIMESTAMP WHERE member_id = ? AND converted = 0').run(memberId);
+  },
+};
+
+module.exports = { getDb, TIERS, Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives, Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals };

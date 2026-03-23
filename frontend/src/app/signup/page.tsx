@@ -14,8 +14,20 @@ function SignupForm() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const [promoValid, setPromoValid] = useState<{ valid: boolean; discountPct?: number; promoterName?: string } | null>(null);
+
   const u = (field: string, val: any) => setData((p: any) => ({ ...p, [field]: val }));
   const provinces = ['Gauteng','Western Cape','KwaZulu-Natal','Eastern Cape','Free State','Limpopo','Mpumalanga','North West','Northern Cape'];
+
+  const validatePromo = async (code: string) => {
+    u('promoCode', code);
+    if (!code.trim()) { setPromoValid(null); return; }
+    try {
+      const r = await fetch(`/api/promo/validate?code=${encodeURIComponent(code.trim())}`);
+      const data = await r.json();
+      setPromoValid(data);
+    } catch { setPromoValid(null); }
+  };
 
   const next1 = () => {
     if (!data.firstName || !data.lastName || !data.email || !data.phone || !data.password) {
@@ -96,6 +108,19 @@ function SignupForm() {
                 <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">Password *</label>
                 <input type="password" value={data.password||''} onChange={e => u('password', e.target.value)}
                   className={inputClass} placeholder="Create a password" />
+              </div>
+              <div className="mt-3">
+                <label className="block text-[11px] font-semibold text-[#6E7275] mb-1 tracking-wider uppercase">Promo Code (optional)</label>
+                <input value={data.promoCode||''} onChange={e => validatePromo(e.target.value)}
+                  className={inputClass} placeholder="e.g. SUPERCAR20" style={{ textTransform: 'uppercase' }} />
+                {promoValid?.valid && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-ci-green text-[11px] font-semibold">
+                    ✓ {promoValid.discountPct}% discount from {promoValid.promoterName}
+                  </div>
+                )}
+                {promoValid && !promoValid.valid && data.promoCode && (
+                  <div className="text-[11px] text-ci-red mt-1.5">Invalid promo code</div>
+                )}
               </div>
               <button onClick={next1} className="btn btn-red w-full py-3.5 mt-5 text-sm tracking-[2px]">CONTINUE →</button>
             </>
