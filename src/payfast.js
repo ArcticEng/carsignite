@@ -85,14 +85,18 @@ function generatePaymentData(member, tier) {
 
   const phone = (member.phone || '').replace(/[^0-9]/g, '');
 
-  // Check for promo code discount
+  // Check for promo code discount (wrapped in try/catch for safety)
   let price = tierConfig.price;
   let discountApplied = 0;
-  const referral = Referrals.getByMember(member.id);
-  if (referral && referral.discount_pct > 0) {
-    discountApplied = referral.discount_pct;
-    price = Math.round(price * (1 - discountApplied / 100) * 100) / 100;
-    console.log(`[PayFast] Promo ${referral.promoter_code} applied: ${discountApplied}% off → R${price}`);
+  try {
+    const referral = Referrals.getByMember(member.id);
+    if (referral && referral.discount_pct > 0) {
+      discountApplied = referral.discount_pct;
+      price = Math.round(price * (1 - discountApplied / 100) * 100) / 100;
+      console.log(`[PayFast] Promo ${referral.promoter_code} applied: ${discountApplied}% off -> R${price}`);
+    }
+  } catch (e) {
+    console.log('[PayFast] Referral lookup skipped:', e.message);
   }
 
   const data = {
@@ -106,7 +110,7 @@ function generatePaymentData(member, tier) {
     email_address: member.email,
     m_payment_id: `CI${Date.now()}`,
     amount: price.toFixed(2),
-    item_name: `CarsIgnite ${tierConfig.name} Monthly${discountApplied ? ` (-${discountApplied}%)` : ''}`,
+    item_name: discountApplied ? `CarsIgnite ${tierConfig.name} ${discountApplied}pct off` : `CarsIgnite ${tierConfig.name} Monthly`,
     item_description: `${tierConfig.name} tier membership`,
     custom_str1: member.id,
     custom_str2: tier,
@@ -128,7 +132,10 @@ function generatePaymentData(member, tier) {
 
   console.log('[PayFast] Checkout generated for', member.email, '| tier:', tier, '| amount: R' + data.amount);
 
-  return { data, url: PAYFAST_URL };
+  return {
+    data, url: PAYFAST_URL,
+    discount: discountApplied > 0 ? { pct: discountApplied, originalPrice: tierConfig.price, finalPrice: price } : null,
+  };
 }
 
 /**
@@ -195,11 +202,15 @@ async function processITN(body) {
     Members.update(memberId, { status: 'active', tier: tier });
 
     // Mark referral as converted + credit promoter
-    const referral = Referrals.getByMember(memberId);
-    if (referral && !referral.converted) {
-      Referrals.markConverted(memberId);
-      Promoters.incrementReferral(referral.promoter_id, parseFloat(body.amount_gross));
-      console.log(`[PayFast] Referral converted for promoter ${referral.promoter_id}`);
+    try {
+      const referral = Referrals.getByMember(memberId);
+      if (referral && !referral.converted) {
+        Referrals.markConverted(memberId);
+        Promoters.incrementReferral(referral.promoter_id, parseFloat(body.amount_gross));
+        console.log(`[PayFast] Referral converted for promoter ${referral.promoter_id}`);
+      }
+    } catch (e) {
+      console.log('[PayFast] Referral conversion skipped:', e.message);
     }
 
     console.log(`[PayFast] Activated member ${memberId} on tier: ${tier}`);

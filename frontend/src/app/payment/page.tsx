@@ -17,6 +17,8 @@ function CheckoutForm() {
   const tier = params.get('tier') || member?.tier || 'apex';
   const t = TIERS[tier];
 
+  const [discount, setDiscount] = useState<{ pct: number; originalPrice: number; finalPrice: number } | null>(null);
+
   useEffect(() => {
     if (!member) return;
 
@@ -24,6 +26,7 @@ function CheckoutForm() {
       .then((r: any) => {
         setPaymentData(r.data);
         setPaymentUrl(r.url);
+        if (r.discount) setDiscount(r.discount);
         setLoading(false);
       })
       .catch((e: any) => {
@@ -84,12 +87,25 @@ function CheckoutForm() {
                 <span className="text-[13px] text-[#58586a]">Prize Draws</span>
                 <span className="text-sm">{t?.entries}× entries per {t?.freq?.toLowerCase()}</span>
               </div>
+              {discount && (
+                <>
+                  <div className="h-px bg-glass-border my-3" />
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[13px] text-[#6E7275]">Original Price</span>
+                    <span className="text-sm line-through text-[#6E7275]">R{discount.originalPrice}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-ci-green font-bold">Promo Discount</span>
+                    <span className="text-sm font-bold text-ci-green">-{discount.pct}%</span>
+                  </div>
+                </>
+              )}
               <div className="h-px bg-glass-border my-3" />
               <div className="flex items-center justify-between">
                 <span className="font-bold">Total</span>
-                <span className="font-heading text-3xl text-ci-gold-light tracking-wide">R{t?.price}</span>
+                <span className="font-heading text-3xl text-ci-gold-light tracking-wide">R{discount ? discount.finalPrice : t?.price}</span>
               </div>
-              <div className="text-right text-[10px] text-[#58586a]">per month, charged via debit order</div>
+              <div className="text-right text-[10px] text-[#6E7275]">per month, charged via debit order</div>
             </div>
 
             <div className="py-4">
@@ -111,11 +127,11 @@ function CheckoutForm() {
               onClick={() => formRef.current?.submit()}
               className="btn btn-gold w-full py-3.5 text-sm tracking-[2px] mt-2"
             >
-              PAY NOW — R{t?.price}/MO
+              PAY NOW — R{discount ? discount.finalPrice : t?.price}/MO
             </button>
 
-            <p className="text-[10px] text-[#58586a] mt-4 leading-relaxed">
-              By proceeding, you authorise CarsIgnite to charge R{t?.price} monthly via PayFast recurring billing.
+            <p className="text-[10px] text-[#6E7275] mt-4 leading-relaxed">
+              By proceeding, you authorise CarsIgnite to charge R{discount ? discount.finalPrice : t?.price} monthly via PayFast recurring billing.
               You can cancel anytime from your dashboard. Payments are processed securely by PayFast (PCI DSS Level 1).
             </p>
           </>
