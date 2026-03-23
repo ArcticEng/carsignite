@@ -102,7 +102,7 @@ function generatePaymentData(member, tier) {
   const data = {
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
-    return_url: `${PAYFAST_RETURN_URL}?tier=${tier}`,
+    return_url: PAYFAST_RETURN_URL,
     cancel_url: PAYFAST_CANCEL_URL,
     notify_url: PAYFAST_NOTIFY_URL,
     name_first: member.first_name,
@@ -110,8 +110,7 @@ function generatePaymentData(member, tier) {
     email_address: member.email,
     m_payment_id: `CI${Date.now()}`,
     amount: price.toFixed(2),
-    item_name: discountApplied ? `CarsIgnite ${tierConfig.name} ${discountApplied}pct off` : `CarsIgnite ${tierConfig.name} Monthly`,
-    item_description: `${tierConfig.name} tier membership`,
+    item_name: `CarsIgnite ${tierConfig.name}`,
     custom_str1: member.id,
     custom_str2: tier,
     subscription_type: '1',

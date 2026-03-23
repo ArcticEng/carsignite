@@ -8,7 +8,10 @@ import { TIERS, TierBadge } from '@/lib/tiers';
 function SuccessContent() {
   const { member, refresh } = useAuth();
   const params = useSearchParams();
-  const upgradedTier = params.get('tier') || 'apex';
+  const [savedTier] = useState(() => {
+    try { return window.sessionStorage.getItem('ci_upgrade_tier'); } catch { return null; }
+  });
+  const upgradedTier = params.get('tier') || savedTier || 'apex';
   const t = TIERS[upgradedTier] || TIERS.apex;
   const [verified, setVerified] = useState(false);
   const [attempts, setAttempts] = useState(0);

@@ -39,11 +39,13 @@ function CheckoutForm() {
   useEffect(() => {
     if (paymentData && formRef.current) {
       const timer = setTimeout(() => {
+        // Store tier for success page (since we can't pass it via return_url)
+        try { window.sessionStorage.setItem('ci_upgrade_tier', tier); } catch {}
         formRef.current?.submit();
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [paymentData]);
+  }, [paymentData, tier]);
 
   if (error) return (
     <section className="min-h-dvh flex items-center justify-center px-5 pt-24">
