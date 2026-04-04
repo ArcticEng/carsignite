@@ -43,11 +43,21 @@ function LockedFeature() {
 export default function DashboardPage() {
   const { member, loading } = useAuth();
   const [tab, setTab] = useState('entries');
+  const [initialTabSet, setInitialTabSet] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !member) router.push('/login');
   }, [loading, member, router]);
+
+  // Set initial tab for paid users (must be before any early returns)
+  useEffect(() => {
+    if (member && !initialTabSet) {
+      const isPaid = member.tier !== 'free' && member.status === 'active';
+      if (isPaid) setTab('chat');
+      setInitialTabSet(true);
+    }
+  }, [member, initialTabSet]);
 
   if (loading || !member) return (
     <div className="min-h-dvh flex items-center justify-center"><div className="w-8 h-8 border-2 border-glass-border border-t-ci-red rounded-full animate-spin" /></div>
@@ -57,12 +67,6 @@ export default function DashboardPage() {
   const cd = getCountdown();
   const isFree = member.tier === 'free';
   const needsPayment = !isFree && member.status !== 'active';
-  const isPaid = !isFree && member.status === 'active';
-
-  // Free users default to entries tab; paid users default to chat
-  useEffect(() => {
-    if (isPaid) setTab('chat');
-  }, [isPaid]);
 
   const currentTab = TABS.find(tb => tb.id === tab);
   const showLocked = isFree && currentTab && !currentTab.free;
