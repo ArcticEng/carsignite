@@ -18,11 +18,46 @@ function getDb() {
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     
-    // Initialize schema
+    // Initialize schema (CREATE TABLE IF NOT EXISTS — safe to re-run)
     const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     db.exec(schema);
+    
+    // Run migrations (add new columns to existing tables — safe to re-run)
+    runMigrations(db);
   }
   return db;
+}
+
+/**
+ * Safe column migrations — adds columns that don't exist yet.
+ * Each migration is idempotent: runs ALTER TABLE ADD COLUMN wrapped in try/catch.
+ * Add new migrations to the bottom of the list — never remove old ones.
+ */
+function runMigrations(d) {
+  const migrations = [
+    // 2026-03-21: Dream preferences
+    'ALTER TABLE members ADD COLUMN current_car TEXT',
+    'ALTER TABLE members ADD COLUMN dream_car TEXT',
+    'ALTER TABLE members ADD COLUMN dream_watch TEXT',
+    'ALTER TABLE members ADD COLUMN dream_house TEXT',
+    // 2026-03-22: Promoter referral tracking
+    'ALTER TABLE members ADD COLUMN promo_code TEXT',
+    'ALTER TABLE members ADD COLUMN referred_by TEXT REFERENCES promoters(id)',
+  ];
+
+  let applied = 0;
+  for (const sql of migrations) {
+    try {
+      d.exec(sql);
+      applied++;
+    } catch (e) {
+      // Column already exists — ignore (this is expected on re-runs)
+      if (!e.message.includes('duplicate column')) {
+        console.warn('[Migration] Unexpected error:', e.message, '| SQL:', sql);
+      }
+    }
+  }
+  if (applied > 0) console.log(`[DB] Applied ${applied} migration(s)`);
 }
 
 // ═══ TIER CONFIG ═══
