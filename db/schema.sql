@@ -271,6 +271,16 @@ CREATE TABLE IF NOT EXISTS referrals (
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Password reset tokens
+CREATE TABLE IF NOT EXISTS password_resets (
+    id              TEXT PRIMARY KEY,
+    member_id       TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    token           TEXT NOT NULL UNIQUE,
+    expires_at      DATETIME NOT NULL,
+    used            INTEGER DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ═══ Indexes for performance ═══
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
 CREATE INDEX IF NOT EXISTS idx_members_tier ON members(tier);

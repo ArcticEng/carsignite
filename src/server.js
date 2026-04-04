@@ -13,8 +13,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 const { Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives: DrivesDB, 
-        Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals, TIERS } = require('../db/database');
+        Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals, PasswordResets, TIERS } = require('../db/database');
 const { generatePaymentData, verifyITN, processITN } = require('./payfast');
+const { welcomeEmail, passwordResetEmail } = require('./email');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,6 +105,9 @@ app.post('/api/auth/register', async (req, res) => {
     
     const token = generateToken(member);
     
+    // Send welcome email (async, don't block response)
+    welcomeEmail(member).catch(e => console.log('[Email] Welcome failed:', e.message));
+    
     res.status(201).json({
       success: true,
       token,
@@ -139,6 +143,77 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', auth, (req, res) => {
   const sub = Subscriptions.getActive(req.member.id);
   res.json({ member: { ...req.member, password_hash: undefined }, subscription: sub });
+});
+
+// Forgot password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const member = Members.getByEmail(email);
+    // Always return success (don't reveal if email exists)
+    if (!member) return res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+    const { token } = PasswordResets.create(member.id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+    await passwordResetEmail(member, resetUrl);
+    Audit.log('system', 'password_reset_requested', 'member', member.id, { email });
+    res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+  } catch (e) {
+    console.error('Forgot password error:', e);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// Reset password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token and password required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const reset = PasswordResets.getByToken(token);
+    if (!reset) return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+    const hash = await bcrypt.hash(password, 10);
+    const { getDb } = require('../db/database');
+    getDb().prepare('UPDATE members SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, reset.member_id);
+    PasswordResets.markUsed(reset.id);
+    Audit.log('system', 'password_reset_completed', 'member', reset.member_id, {});
+    res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+  } catch (e) {
+    console.error('Reset password error:', e);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Update profile
+app.put('/api/auth/profile', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, phone, city, province, currentPassword, newPassword } = req.body;
+    const updates = {};
+    if (firstName) updates.first_name = firstName;
+    if (lastName) updates.last_name = lastName;
+    if (phone) updates.phone = phone;
+    if (city) updates.city = city;
+    if (province) updates.province = province;
+    // Password change requires current password
+    if (newPassword) {
+      if (!currentPassword) return res.status(400).json({ error: 'Current password required to change password' });
+      const valid = await bcrypt.compare(currentPassword, req.member.password_hash);
+      if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+      if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters' });
+      const { getDb } = require('../db/database');
+      const hash = await bcrypt.hash(newPassword, 10);
+      getDb().prepare('UPDATE members SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(hash, req.member.id);
+    }
+    if (Object.keys(updates).length > 0) {
+      Members.update(req.member.id, updates);
+    }
+    const updated = Members.getById(req.member.id);
+    Audit.log(req.member.id, 'profile_updated', 'member', req.member.id, { fields: Object.keys(updates) });
+    res.json({ success: true, member: { ...updated, password_hash: undefined } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ═══════════════════════════════════════════

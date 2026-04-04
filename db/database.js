@@ -703,4 +703,26 @@ const Referrals = {
   },
 };
 
-module.exports = { getDb, TIERS, Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives, Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals };
+// ═══════════════════════════════════════════
+// PASSWORD RESETS
+// ═══════════════════════════════════════════
+const PasswordResets = {
+  create(memberId) {
+    const d = getDb();
+    const id = uuid();
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+    // Invalidate any existing tokens for this member
+    d.prepare('UPDATE password_resets SET used = 1 WHERE member_id = ? AND used = 0').run(memberId);
+    d.prepare('INSERT INTO password_resets (id, member_id, token, expires_at) VALUES (?, ?, ?, ?)').run(id, memberId, token, expiresAt);
+    return { id, token, expiresAt };
+  },
+  getByToken(token) {
+    return getDb().prepare('SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > datetime("now")').get(token);
+  },
+  markUsed(id) {
+    getDb().prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(id);
+  },
+};
+
+module.exports = { getDb, TIERS, Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives, Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals, PasswordResets };
