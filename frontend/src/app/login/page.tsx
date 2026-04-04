@@ -50,7 +50,10 @@ export default function LoginPage() {
               placeholder="your@email.com" />
           </div>
           <div className="mb-5">
-            <label className="block text-[11px] font-semibold text-[#6E7275] mb-1.5 tracking-wider uppercase">Password</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] font-semibold text-[#6E7275] tracking-wider uppercase">Password</label>
+              <Link href="/forgot-password" className="text-[10px] text-[#E03455] hover:text-ci-red-light">Forgot password?</Link>
+            </div>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               className="w-full px-3.5 py-3 bg-glass border border-glass-border rounded-xl text-white text-sm transition-all focus:border-ci-red focus:shadow-[0_0_0_3px_rgba(224,52,85,.12)]"

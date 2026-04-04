@@ -6,6 +6,7 @@
 
 const crypto = require('crypto');
 const { Subscriptions, Payments, Members, Audit, TIERS, Referrals, Promoters } = require('../db/database');
+const { paymentConfirmEmail } = require('./email');
 
 const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '10000100';
 const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a';
@@ -213,6 +214,13 @@ async function processITN(body) {
     }
 
     console.log(`[PayFast] Activated member ${memberId} on tier: ${tier}`);
+
+    // Send payment confirmation email
+    const updatedMember = Members.getById(memberId);
+    if (updatedMember) {
+      paymentConfirmEmail(updatedMember, tier, body.amount_gross).catch(e => console.log('[Email] Payment confirm failed:', e.message));
+    }
+
     return { success: true, action: 'payment_recorded' };
   }
 

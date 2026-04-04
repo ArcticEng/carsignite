@@ -15,7 +15,7 @@ const bcrypt = require('bcrypt');
 const { Members, Subscriptions, Payments, Draws, DrawEntries, Messages, Drives: DrivesDB, 
         Tracking, Notifications, Audit, Analytics, PrizeConfig, DriveGroups, Promoters, Referrals, PasswordResets, TIERS } = require('../db/database');
 const { generatePaymentData, verifyITN, processITN } = require('./payfast');
-const { welcomeEmail, passwordResetEmail } = require('./email');
+const { welcomeEmail, passwordResetEmail, drawWinnerEmail } = require('./email');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -366,6 +366,15 @@ app.post('/api/draws/execute', adminAuth, (req, res) => {
     if (!TIERS[tier]) return res.status(400).json({ error: 'Invalid tier' });
     
     const result = Draws.executeDraw(tier);
+    
+    // Email the winner
+    if (result.winner_id) {
+      const winner = Members.getById(result.winner_id);
+      if (winner) {
+        drawWinnerEmail(winner, result.prize_name, result.prize_value).catch(e => console.log('[Email] Winner email failed:', e.message));
+      }
+    }
+    
     res.json({ success: true, draw: result });
   } catch (e) {
     res.status(400).json({ error: e.message });

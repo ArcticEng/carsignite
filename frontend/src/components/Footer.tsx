@@ -19,7 +19,8 @@ export function Footer() {
             <div className="flex flex-col gap-1.5">
               <span className="text-[9px] font-bold tracking-[2px] text-[#6E7275] uppercase mb-1">Legal</span>
               <Link href="/terms" className="text-xs text-[#6E7275] hover:text-[#E7E5E6]">Competition Rules</Link>
-              <Link href="/terms#3" className="text-xs text-[#6E7275] hover:text-[#E7E5E6]">No Purchase Necessary</Link>
+              <Link href="/privacy" className="text-xs text-[#6E7275] hover:text-[#E7E5E6]">Privacy Policy</Link>
+              <Link href="/faq" className="text-xs text-[#6E7275] hover:text-[#E7E5E6]">FAQ</Link>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-[9px] font-bold tracking-[2px] text-[#6E7275] uppercase mb-1">Social</span>
